@@ -4,11 +4,13 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include "command.h"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -77,13 +79,39 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut)
         pid = fork();
         if (pid == 0) {
             // Child
-            if (fdIn != STDIN_FILENO) {
-                dup2(fdIn, STDIN_FILENO);
+            //  Handle redirection and piping
+            if (command->stdin_file == NULL) {
+                // If no redirection, use pipe
+                if (fdIn != STDIN_FILENO) {
+                    dup2(fdIn, STDIN_FILENO);
+                }
+            } else {
+                // Else use redirection
+                // @note: redirection overrides piping, similar to bash shell
+                int in = open(command->stdin_file,
+                              O_RDONLY); // Open for reading only
+                dup2(in, STDIN_FILENO);
+                // Close unneeded file descriptor
+                close(in);
             }
-            if (fdOut != STDOUT_FILENO) {
-                dup2(fdOut, STDOUT_FILENO);
+            if (command->stdout_file == NULL) {
+                if (fdOut != STDOUT_FILENO) {
+                    dup2(fdOut, STDOUT_FILENO);
+                }
+            } else {
+                int out =
+                    open(command->stdout_file, O_WRONLY | O_TRUNC | O_CREAT,
+                         S_IRUSR | S_IRGRP | S_IWGRP |
+                             S_IWUSR); // Open for writing, truncate file to 0
+                                       // (clear it), create file if it does not
+                                       // exist, with read and write permissions
+                                       // for owner of file and group
+                dup2(out, STDOUT_FILENO);
+                // Close unneeded file descriptor
+                close(out);
             }
 
+            // Close any open pipes in child
             sane_pipesClose();
 
             if (execvp(command->argv[0], command->argv) == -1) {
