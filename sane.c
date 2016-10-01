@@ -69,7 +69,7 @@ void sane_pipesCreate(unsigned int num)
 
 // Stephen Brennan
 // return num executed
-pid_t sane_launch(command_t *command, int fdIn, int fdOut, int shouldWait)
+pid_t sane_launch(command_t *command, int fdIn, int fdOut)
 {
     pid_t pid = -1;
 
@@ -77,10 +77,10 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut, int shouldWait)
         pid = fork();
         if (pid == 0) {
             // Child
-            if (fdIn != 0) {
+            if (fdIn != STDIN_FILENO) {
                 dup2(fdIn, STDIN_FILENO);
             }
-            if (fdOut != 1) {
+            if (fdOut != STDOUT_FILENO) {
                 dup2(fdOut, STDOUT_FILENO);
             }
 
@@ -90,22 +90,7 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut, int shouldWait)
                 perror("sane");
             }
             exit(EXIT_FAILURE);
-        } else if (pid > 0) {
-            // Parent
-            int status;
-
-            /* // Don't wait for background process */
-            /* if (shouldWait) { */
-            /*     // Wait for child process to finish */
-            /*     do { */
-            /*         waitpid(pid, &status, WUNTRACED); */
-            /*     } while (!WIFEXITED(status) && !WIFSIGNALED(status)); */
-            /* } else { */
-            /*     // TODO: Add to jobs list */
-            /*     // If is a background process, print pid (like bash) */
-            /*     printf("%d\n", pid); */
-            /* } */
-        } else {
+        } else if (pid < 0) {
             // Error
             perror("sane");
         }
@@ -169,55 +154,28 @@ int sane_execute(int numCommands, command_t *commands)
     /*     //       child execute command */
     /*     //       parent wait if not background job */
     /* } */
-    // Iterate through commands and execute them all
-    /* int i = 0; */
-    /* while (i < numCommands) { */
-    /*     if (strcmp(commands[i].sep, SEP_PIPE) != 0) { */
-    /*         // If not pipe sequence, do normal launch */
-    /*         sane_launch(&commands[i], 0, 1); */
-    /*         ++i; */
-    /*     } else { */
-    /*         // Else launch the sequence of piped commands */
-    /*         int numPipedCommands = 1; */
-    /*         for (int j = i; j < numCommands; ++j) { */
-    /*             if (strcmp(commands[j].sep, SEP_PIPE) == 0) { */
-    /*                 ++numPipedCommands; */
-    /*             } */
-    /*         } */
-    /*         /\* sane_launchPipedSequence_r(numPipedCommands, &commands[i]);
-     * *\/ */
-    /*         int k = 0; */
-    /*         int pipes[2]; */
-    /*         pipe(pipes); */
-
-    /*         sane_launch */
-    /*         i += numPipedCommands; */
-    /*     } */
-    /* } */
-    /* int i = 0; */
-    /* sane_pipesCreate(2); */
-    /* if (i == 0) { */
-    /*     /\* printf("command: 0, fdIn: %d, fdOut: %d\n", 0, sane_pipes[1]);
-     * *\/ */
-    /*     /\* sane_launch(&commands[i], 0, sane_pipes[1], 0); *\/ */
-    /*     /\* printf("command: 1, fdIn: %d, fdOut: %d\n", sane_pipes[0], *\/ */
-    /*     /\*        sane_pipes[3]); *\/ */
-    /*     /\* sane_launch(&commands[i + 1], sane_pipes[0], sane_pipes[3], 0);
-     * *\/ */
-    /*     /\* printf("command: 2, fdIn: %d, fdOut: %d\n", sane_pipes[2], 1);
-     * *\/ */
-    /*     /\* sane_launch(&commands[i + 2], sane_pipes[2], 1, 0); *\/ */
-    /* } */
-    /* sane_pipesClose(); */
-    /* sane_pipesReset(); */
-    /* int status; */
-    /* for (int i = 0; i < 3; ++i) { */
-    /*     wait(&status); */
-    /* } */
     int i = 0;
     while (i < numCommands) {
+        if (strcmp(commands[i].sep, SEP_SEQ) == 0) {
+            pid_t pid = sane_launch(&commands[i], STDIN_FILENO, STDOUT_FILENO);
+
+            // Wait for child process to finish
+            int status;
+            do {
+                waitpid(pid, &status, WUNTRACED);
+            } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+
+            ++i;
+        } else if (strcmp(commands[i].sep, SEP_CON) == 0) {
+            pid_t pid = sane_launch(&commands[i], STDIN_FILENO, STDOUT_FILENO);
+
+            // Don't wait for child process to finish
+            printf("%d\n", pid);
+
+            ++i;
+        }
         // Piped command
-        if (strcmp(commands[i].sep, SEP_PIPE) == 0) {
+        else if (strcmp(commands[i].sep, SEP_PIPE) == 0) {
             //
             // Execute sequences of pipe commands at once for example, in:
             //
@@ -245,8 +203,7 @@ int sane_execute(int numCommands, command_t *commands)
                     /*        STDIN_FILENO, sane_pipes[1]); */
                     // First command in sequence:
                     //  - Use stdin for in, pipe for out (first write pipe)
-                    sane_launch(&commands[i + k], STDIN_FILENO, sane_pipes[1],
-                                0);
+                    sane_launch(&commands[i + k], STDIN_FILENO, sane_pipes[1]);
                 } else if (k == numPipedCommands - 1) {
                     /* printf("command: %d, fdIn: %d, fdOut: %d, \n", i + k, */
                     /*        sane_pipes[((sane_numPipes * 2) - 1) - 1], */
@@ -255,15 +212,16 @@ int sane_execute(int numCommands, command_t *commands)
                     //  - Use pipe (last read pipe) for in, stdout for out
                     sane_launch(&commands[i + k],
                                 sane_pipes[((sane_numPipes * 2) - 1) - 1],
-                                STDOUT_FILENO, 0);
+                                STDOUT_FILENO);
                 } else {
                     /* printf("command: %d, fdIn: %d, fdOut: %d, \n", i + k, */
-                    /*        sane_pipes[(k - 1) * 2], sane_pipes[(k * 2) + 1]); */
+                    /*        sane_pipes[(k - 1) * 2], sane_pipes[(k * 2) + 1]);
+                     */
                     // 'k'th command in sequence:
                     //  - Use pipe from previous command for in, pipe for this
                     //  command for out
                     sane_launch(&commands[i + k], sane_pipes[((k - 1) * 2) + 0],
-                                sane_pipes[(k * 2) + 1], 0);
+                                sane_pipes[(k * 2) + 1]);
                 }
             }
 
