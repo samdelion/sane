@@ -28,22 +28,29 @@ unsigned int sane_numPipes = 0;
 // Shell built-in function declartions
 /* int sane_cd(char **argv); */
 /* int sane_exit(char **argv); */
-/* int sane_help(char **argv); */
+int sane_help(char **argv);
 /* int sane_prompt(char **argv); */
 /* int sane_pwd(char **argv); */
+
+int sane_help(char **argv)
+{
+    printf("sane shell: Help granted.\n");
+}
 
 /* // Strings used to call built-in functions and function pointer */
 /* // (note order matches in both arrays) */
 /* char *sane_builtinStr[] = {"cd", "exit", "help", "prompt", "pwd"}; */
+char *sane_builtinStr[] = {"help"};
 
 /* int (*sane_builtinFunc[])(char **) = {&sane_cd, &sane_exit, &sane_help, */
 /*                                       &sane_prompt, &sane_pwd}; */
+int (*sane_builtinFuncs[])(char **) = {&sane_help};
 
 // Return the number of shell built-in functions.
-/* int sane_numBuiltins() */
-/* { */
-/*     return sizeof(sane_builtinStr) / sizeof(char *); */
-/* } */
+int sane_numBuiltins()
+{
+    return sizeof(sane_builtinStr) / sizeof(char *);
+}
 
 // Close all open pipes, sets sane_numPipes = 0
 void sane_pipesClose()
@@ -111,9 +118,20 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut)
                 close(out);
             }
 
+            // If is builtin, execute builtin function (Stephen Brennan)
+            for (int i = 0; i < sane_numBuiltins(); ++i) {
+                if (strcmp(command->argv[0], sane_builtinStr[i]) == 0) {
+                    sane_pipesClose();
+
+                    (*sane_builtinFuncs[i])(command->argv);
+                    exit(EXIT_SUCCESS);
+                }
+            }
+
             // Close any open pipes in child
             sane_pipesClose();
 
+            // Else, execute command
             if (execvp(command->argv[0], command->argv) == -1) {
                 perror("sane");
             }
