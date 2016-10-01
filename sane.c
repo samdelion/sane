@@ -1,6 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-// Reference Stephen Brennan (https://brennan.io/2015/01/16/write-a-shell-in-c/)
-//
+/// Reference Stephen Brennan
+/// (https://brennan.io/2015/01/16/write-a-shell-in-c/)
+///
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <sys/wait.h>
@@ -11,8 +12,9 @@
 #include "command.h"
 
 ////////////////////////////////////////////////////////////////////////////////
-// For 'n' commands we need 'n - 1' pipe structures, which are made up of 2 file
-// descriptors each.
+/// For 'n' commands we need 'n - 1' pipe structures, which are made up of 2
+/// file
+/// descriptors each.
 ////////////////////////////////////////////////////////////////////////////////
 #define MAX_NUM_PIPES ((MAX_NUM_COMMANDS - 1) * 2)
 
@@ -44,7 +46,8 @@ unsigned int sane_numPipes = 0;
 // Close all open pipes, sets sane_numPipes = 0
 void sane_pipesClose()
 {
-    for (int i = 0; i < sane_numPipes; ++i) {
+    // There are two file descriptors for each 'pipe' structure
+    for (int i = 0; i < sane_numPipes * 2; ++i) {
         close(sane_pipes[i]);
     }
     sane_numPipes = 0;
@@ -191,87 +194,94 @@ int sane_execute(int numCommands, command_t *commands)
     /*         i += numPipedCommands; */
     /*     } */
     /* } */
-    int i = 0;
-    sane_numPipes = 4;
-    pipe(sane_pipes);
-    pipe(sane_pipes + 2);
-    if (i == 0) {
-        sane_launch(&commands[i], 0, sane_pipes[1], 0);
-        sane_launch(&commands[i + 1], sane_pipes[0], sane_pipes[3], 0);
-        sane_launch(&commands[i + 2], sane_pipes[2], 1, 0);
-    }
-    sane_pipesClose();
-    sane_pipesReset();
-    int status;
-    for (int i = 0; i < 3; ++i) {
-        wait(&status);
-    }
     /* int i = 0; */
-    /* while (i < numCommands) { */
-    /*     if (strcmp(commands[i].sep, SEP_PIPE) != 0) { */
-    /*         // Execute a sequence of pipe commands at once */
-    /*         // Find out how many to execute */
-    /*         int numPipedCommands = 1; */
-    /*         for (int j = i + 1; j < numCommands; ++j) { */
-    /*             if (strcmp(commands[j].sep, SEP_PIPE) == 0) { */
-    /*                 ++numPipedCommands; */
-    /*             } */
-    /*         } */
-
-    /*         // For n commands we need n-1 pipes */
-    /*         sane_pipesCreate(numPipedCommands - 1); */
-
-    /*         // Wait for each forked child to finish */
-    /*         for (int k = 0; k < numPipedCommands; ++k) { */
-    /*             wait(&status); */
-    /*         } */
-    /*         i += numPipedCommands; */
-    /*     } */
+    /* sane_pipesCreate(2); */
+    /* if (i == 0) { */
+    /*     /\* printf("command: 0, fdIn: %d, fdOut: %d\n", 0, sane_pipes[1]);
+     * *\/ */
+    /*     /\* sane_launch(&commands[i], 0, sane_pipes[1], 0); *\/ */
+    /*     /\* printf("command: 1, fdIn: %d, fdOut: %d\n", sane_pipes[0], *\/ */
+    /*     /\*        sane_pipes[3]); *\/ */
+    /*     /\* sane_launch(&commands[i + 1], sane_pipes[0], sane_pipes[3], 0);
+     * *\/ */
+    /*     /\* printf("command: 2, fdIn: %d, fdOut: %d\n", sane_pipes[2], 1);
+     * *\/ */
+    /*     /\* sane_launch(&commands[i + 2], sane_pipes[2], 1, 0); *\/ */
     /* } */
-    /* int fdIn = 0; */
-    /* int fdOut = pipes[1]; */
-    /* const int numPipes = 4; */
-
-    /* if (fork() == 0) { */
-    /*     dup2(fdOut, 1); */
-
-    /*     for (int i = 0; i < numPipes; ++i) { */
-    /*         close(pipes[i]); */
-    /*     } */
-
-    /*     execvp(commands[0].argv[0], commands[0].argv); */
-    /* } else { */
-    /*     if (fork() == 0) { */
-    /*         dup2(pipes[0], 0); */
-
-    /*         dup2(pipes[3], 1); */
-
-    /*         for (int i = 0; i < numPipes; ++i) { */
-    /*             close(pipes[i]); */
-    /*         } */
-
-    /*         execvp(commands[1].argv[0], commands[1].argv); */
-    /*     } else { */
-    /*         if (fork() == 0) { */
-    /*             dup2(pipes[2], 0); */
-
-    /*             for (int i = 0; i < numPipes; ++i) { */
-    /*                 close(pipes[i]); */
-    /*             } */
-
-    /*             execvp(commands[2].argv[0], commands[2].argv); */
-    /*         } */
-    /*     } */
-    /* } */
-
-    /* for (int i = 0; i < numPipes; ++i) { */
-    /*     close(pipes[i]); */
-    /* } */
-
+    /* sane_pipesClose(); */
+    /* sane_pipesReset(); */
     /* int status; */
     /* for (int i = 0; i < 3; ++i) { */
     /*     wait(&status); */
     /* } */
+    int i = 0;
+    while (i < numCommands) {
+        // Piped command
+        if (strcmp(commands[i].sep, SEP_PIPE) == 0) {
+            //
+            // Execute sequences of pipe commands at once for example, in:
+            //
+            // 'whoami ; cat out.txt | sort | less ; echo "Hello"'
+            //           |_________________________|
+            // this section ^ would be considered a sequence of piped commands.
+
+            // Find out how many to execute
+            int numPipedCommands = 0;
+            for (int j = i; j < numCommands; ++j) {
+                if (strcmp(commands[j].sep, SEP_PIPE) == 0) {
+                    ++numPipedCommands;
+                }
+            }
+            // Also include last element in pipe sequence (which will not
+            // contain a pipe seperator [see 'less' in above example])
+            ++numPipedCommands;
+
+            // For n commands we need n-1 pipes
+            sane_pipesCreate(numPipedCommands - 1);
+
+            for (int k = 0; k < numPipedCommands; ++k) {
+                if (k == 0) {
+                    /* printf("command: %d, fdIn: %d, fdOut: %d, \n", i + k, */
+                    /*        STDIN_FILENO, sane_pipes[1]); */
+                    // First command in sequence:
+                    //  - Use stdin for in, pipe for out (first write pipe)
+                    sane_launch(&commands[i + k], STDIN_FILENO, sane_pipes[1],
+                                0);
+                } else if (k == numPipedCommands - 1) {
+                    /* printf("command: %d, fdIn: %d, fdOut: %d, \n", i + k, */
+                    /*        sane_pipes[((sane_numPipes * 2) - 1) - 1], */
+                    /*        STDOUT_FILENO); */
+                    // Last command in sequence:
+                    //  - Use pipe (last read pipe) for in, stdout for out
+                    sane_launch(&commands[i + k],
+                                sane_pipes[((sane_numPipes * 2) - 1) - 1],
+                                STDOUT_FILENO, 0);
+                } else {
+                    /* printf("command: %d, fdIn: %d, fdOut: %d, \n", i + k, */
+                    /*        sane_pipes[(k - 1) * 2], sane_pipes[(k * 2) + 1]); */
+                    // 'k'th command in sequence:
+                    //  - Use pipe from previous command for in, pipe for this
+                    //  command for out
+                    sane_launch(&commands[i + k], sane_pipes[((k - 1) * 2) + 0],
+                                sane_pipes[(k * 2) + 1], 0);
+                }
+            }
+
+            // Close all pipes
+            sane_pipesClose();
+            // Reset all pipes
+            sane_pipesReset();
+
+            // Wait for each forked child to finish
+            int status;
+            for (int k = 0; k < numPipedCommands; ++k) {
+                wait(&status);
+            }
+
+
+            i += numPipedCommands;
+        }
+    }
 
     return 1;
 }
