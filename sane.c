@@ -5,12 +5,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
 #include "command.h"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -35,6 +37,8 @@ int sane_help(char **argv);
 int sane_help(char **argv)
 {
     printf("sane shell: Help granted.\n");
+
+    return 0;
 }
 
 /* // Strings used to call built-in functions and function pointer */
@@ -203,13 +207,27 @@ int sane_execute(int numCommands, command_t *commands)
     int i = 0;
     while (i < numCommands) {
         if (strcmp(commands[i].sep, SEP_SEQ) == 0) {
-            pid_t pid = sane_launch(&commands[i], STDIN_FILENO, STDOUT_FILENO);
+            // Don't catch SIGCHLD (child terminated) signals during this
+            // critical section, otherwise the SIGCHLD signal handler will reap
+            // the process created and the below call to waitpid will fail
+            sigset_t sigset;
+            sigemptyset(&sigset);
+            sigaddset(&sigset, SIGCHLD);
 
-            // Wait for child process to finish
-            int status;
-            do {
-                waitpid(pid, &status, WUNTRACED);
-            } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+            sigprocmask(SIG_SETMASK, &sigset, NULL);
+
+            {
+                pid_t pid =
+                    sane_launch(&commands[i], STDIN_FILENO, STDOUT_FILENO);
+
+                // Wait for child process to finish
+                int status;
+                do {
+                    waitpid(pid, &status, WUNTRACED);
+                } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+            }
+
+            sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
             ++i;
         } else if (strcmp(commands[i].sep, SEP_CON) == 0) {
