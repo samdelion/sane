@@ -1,4 +1,4 @@
-c_exc2: token.o command.o sane.o
+c_exc2: token.o command.o sane.o c_exc2.c
 	gcc token.o command.o sane.o c_exc2.c -o c_exc2 -std=c99
 
 sane.o: sane.c sane.h
