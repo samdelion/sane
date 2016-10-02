@@ -227,6 +227,8 @@ int sane_execute(int numCommands, command_t *commands)
                 } while (!WIFEXITED(status) && !WIFSIGNALED(status));
             }
 
+            // Allow SIGCHLD signals to be processed again, signals received
+            // during critical section will now be processed.
             sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
             ++i;
