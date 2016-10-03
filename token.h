@@ -1,4 +1,4 @@
-#define MAX_NUM_TOKENS 1024
+#define MAX_NUM_TOKENS (100 * 1000)
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Given a string of characters provided in 'inputLine', splits the characters
