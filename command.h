@@ -1,4 +1,4 @@
-#define MAX_NUM_COMMANDS 1024
+#define MAX_NUM_COMMANDS 100
 
 // Command separators
 #define SEP_PIPE "|" // Pipe separator
