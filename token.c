@@ -1,11 +1,42 @@
+#include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 
 #include "token.h"
 
-typedef enum { TOKEN_DEFAULT, TOKEN_STRING } tokeniserState_t;
+////////////////////////////////////////////////////////////////////////////////
+/// Takes a NULL-terminated string currently pointing at the escape character
+/// and expands the escape character and it's following character into the
+/// required character, shortening the string as necessary.
+///
+/// For example, will expand "\\" to "\" and "\'" to "'"
+///
+/// @param   str   char *, pointer to NULL-terminated string, currently pointing
+/// at escape character ('\').
+////////////////////////////////////////////////////////////////////////////////
+void expandEscapeCharacter(char *str)
+{
+    if (*str && *(str + 1)) {
+        if (*str == '\\') {
+            if (*(str + 1) == '\\') {
+                // First character already '\', which we want to expand to - so
+                // do nothing
+            } else if (*(str + 1) == '"' || *(str + 1) == '\'') {
+                *str = *(str + 1);
+            } else { // Handle more escape expansions
+                // Nothing to expand
+                return;
+            }
 
-tokeniserState_t sane_currentTokeniserState = TOKEN_DEFAULT;
+            // Shorten rest of string, replacing each character with it's
+            // successive character, shortening the string.
+            // E.g. [\\a\0] becomes [\a\0\0] (note two NULL-terminators)
+            while (*(++str)) {
+                *str = *(str + 1);
+            }
+        }
+    }
+}
 
 int tokenise(char *inputLine, char *token[])
 {
@@ -22,7 +53,6 @@ int tokenise(char *inputLine, char *token[])
             if (*it == '"' | *it == '\'') {
                 // Quote type is either " or '
                 char quoteType = (*it == '"') ? '"' : '\'';
-                sane_currentTokeniserState = TOKEN_STRING;
 
                 // Assign start address of string (after quote) to array
                 token[numTokens] = ++it;
@@ -31,6 +61,10 @@ int tokenise(char *inputLine, char *token[])
                 // Don't stop consuming characters until we find end of input or
                 // end of string
                 while (*it && *it != quoteType) {
+                    // If escape character, skip over next character (ignore it)
+                    if (*it == '\\') {
+                        expandEscapeCharacter(it);
+                    }
                     ++it;
                 }
 
@@ -40,6 +74,12 @@ int tokenise(char *inputLine, char *token[])
                     return -2;
                 }
             } else {
+                // If first is escape character, expand it before setting start
+                // address of token
+                if (*it == '\\') {
+                    expandEscapeCharacter(it);
+                }
+
                 // Assign start address of token to array
                 token[numTokens] = it;
                 ++numTokens;
@@ -48,6 +88,9 @@ int tokenise(char *inputLine, char *token[])
                 // (not
                 // including space, tab, newline etc.)
                 while (*it && ((*it > 32) && (*it <= 126))) {
+                    if (*it == '\\') {
+                        expandEscapeCharacter(it);
+                    }
                     ++it;
                 }
             }
