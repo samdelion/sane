@@ -2,7 +2,7 @@ MKDIR_P = mkdir -p
 OUT_DIR = ./build
 BIN_DIR = ./bin
 
-.PHONY: dir
+.PHONY: dir all clean
 
 all: dir sane
 
