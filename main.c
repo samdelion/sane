@@ -85,14 +85,21 @@ int main(int argc, char **argv)
             } else {
                 char *token[MAX_NUM_TOKENS];
                 int numTokens = tokenise(inputLine, token);
+                if (numTokens == -1) {
+                    fprintf(stderr, "sane: Number of tokens provided exceeds "
+                                    "MAX_NUM_TOKENS\n");
+                }
+                if (numTokens == -2) {
+                    fprintf(stderr, "sane: String not closed\n");
+                }
 
                 command_t command[MAX_NUM_COMMANDS];
                 // Reset command array
                 memset(command, 0, MAX_NUM_COMMANDS * sizeof(command_t));
-                int err = separateCommands(token, numTokens, command);
+                int numCommands = separateCommands(token, numTokens, command);
 
-                if (err > 0) {
-                    sane_execute(err, command);
+                if (numCommands > 0) {
+                    sane_execute(numCommands, command);
                 }
             }
         }
