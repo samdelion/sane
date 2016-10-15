@@ -93,50 +93,67 @@ void setupSignalHandlers()
 
 int main(int argc, char **argv)
 {
-    char *inputLine = (char *)malloc(INPUT_LINE_SIZE * sizeof(char));
-    char *inputPtr = NULL;
+    // Don't catch SIGQUIT (Ctrl+\), SIGINT (Ctrl+c), SIGTSTP (Ctrl+z) signals
+    // during this critical section
+    sigset_t sigset;
+    sigemptyset(&sigset);
+    sigaddset(&sigset, SIGINT);
+    sigaddset(&sigset, SIGQUIT);
+    sigaddset(&sigset, SIGTSTP);
 
-    setupSignalHandlers();
+    sigprocmask(SIG_SETMASK, &sigset, NULL);
 
-    while (!(sane_shouldQuit)) {
-        memset(inputLine, 0, INPUT_LINE_SIZE);
-        printf("%% ");
+    {
+        char *inputLine = (char *)malloc(INPUT_LINE_SIZE * sizeof(char));
+        char *inputPtr = NULL;
 
-        // Get input buffer from stdin, if getting input fails due to
-        // interruption from signal handler, try again.
-        do {
-            inputPtr = fgets(inputLine, INPUT_LINE_SIZE, stdin);
-        } while (inputPtr == NULL && errno == EINTR);
+        setupSignalHandlers();
 
-        // TODO: Remove. For now, I would like to know cases where this is true
-        assert(inputPtr != NULL && "Couldn't get input!\n");
+        while (!(sane_shouldQuit)) {
+            memset(inputLine, 0, INPUT_LINE_SIZE);
+            printf("%% ");
 
-        if (inputPtr != NULL) {
-            // Remove newline at end of input buffer
-            inputLine[strcspn(inputLine, "\n")] = 0;
+            // Get input buffer from stdin, if getting input fails due to
+            // interruption from signal handler, try again.
+            do {
+                inputPtr = fgets(inputLine, INPUT_LINE_SIZE, stdin);
+            } while (inputPtr == NULL && errno == EINTR);
 
-            char *token[MAX_NUM_TOKENS];
-            int numTokens = tokenise(inputLine, token);
-            if (numTokens == -1) {
-                fprintf(stderr, "sane: Number of tokens provided exceeds "
-                                "MAX_NUM_TOKENS\n");
-            }
-            if (numTokens == -2) {
-                fprintf(stderr, "sane: String not closed\n");
-            }
+            // TODO: Remove. For now, I would like to know cases where this is
+            // true
+            assert(inputPtr != NULL && "Couldn't get input!\n");
 
-            command_t command[MAX_NUM_COMMANDS];
-            // Reset command array
-            memset(command, 0, MAX_NUM_COMMANDS * sizeof(command_t));
-            int numCommands = separateCommands(token, numTokens, command);
+            if (inputPtr != NULL) {
+                // Remove newline at end of input buffer
+                inputLine[strcspn(inputLine, "\n")] = 0;
 
-            if (numCommands > 0) {
-                sane_execute(numCommands, command);
+                char *token[MAX_NUM_TOKENS];
+                int numTokens = tokenise(inputLine, token);
+                if (numTokens == -1) {
+                    fprintf(stderr, "sane: Number of tokens provided exceeds "
+                                    "MAX_NUM_TOKENS\n");
+                }
+                if (numTokens == -2) {
+                    fprintf(stderr, "sane: String not closed\n");
+                }
+
+                command_t command[MAX_NUM_COMMANDS];
+                // Reset command array
+                memset(command, 0, MAX_NUM_COMMANDS * sizeof(command_t));
+                int numCommands = separateCommands(token, numTokens, command);
+
+                if (numCommands > 0) {
+                    sane_execute(numCommands, command);
+                }
             }
         }
+
+        free(inputLine);
     }
 
-    free(inputLine);
+    // Allow SIGINT, SIGQUIT, SIGTSTP signals to be processed again, signals
+    // received during critical section will now be processed.
+    sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
     return 0;
 }
