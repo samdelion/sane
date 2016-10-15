@@ -13,7 +13,7 @@
 #include "token.h"
 
 // Allow at least 256 characters for each token
-#define INPUT_LINE_SIZE (MAX_NUM_TOKENS * 256)
+#define INPUT_LINE_SIZE (256 * MAX_NUM_TOKENS)
 
 int sane_shouldQuit = 0;
 
@@ -93,7 +93,7 @@ void setupSignalHandlers()
 
 int main(int argc, char **argv)
 {
-    char inputLine[INPUT_LINE_SIZE];
+    char *inputLine = (char *)malloc(INPUT_LINE_SIZE * sizeof(char));
     char *inputPtr = NULL;
 
     setupSignalHandlers();
@@ -135,6 +135,8 @@ int main(int argc, char **argv)
             }
         }
     }
+
+    free(inputLine);
 
     return 0;
 }
