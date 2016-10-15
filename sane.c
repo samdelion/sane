@@ -14,10 +14,14 @@
 #include <unistd.h>
 
 #include "command.h"
+#include "sane.h"
 
-// Shell built-in function declarations
+////////////////////////////////////////////////////////////////////////////////
+/// Shell built-in function declarations.
+////////////////////////////////////////////////////////////////////////////////
+
 /* int sane_cd(char **argv); */
-/* int sane_exit(char **argv); */
+int sane_exit(char **argv);
 int sane_help(char **argv);
 /* int sane_prompt(char **argv); */
 /* int sane_pwd(char **argv); */
@@ -42,17 +46,24 @@ int sane_help(char **argv)
     printf("\n    \\/__/         \\/__/         \\/__/         \\/__/   ");
     printf("\n\n Samuel Evans-Powell and Nathan Gane shell\n");
 
-    return 0;
+    return EXIT_SUCCESS;
+}
+
+int sane_exit(char **argv)
+{
+    kill(getppid(), SIGUSR1);
+
+    return EXIT_SUCCESS;
 }
 
 /* // Strings used to call built-in functions and function pointer */
 /* // (note order matches in both arrays) */
 /* char *sane_builtinStr[] = {"cd", "exit", "help", "prompt", "pwd"}; */
-char *sane_builtinStr[] = {"help"};
+char *sane_builtinStr[] = {"help", "exit"};
 
 /* int (*sane_builtinFunc[])(char **) = {&sane_cd, &sane_exit, &sane_help, */
 /*                                       &sane_prompt, &sane_pwd}; */
-int (*sane_builtinFuncs[])(char **) = {&sane_help};
+int (*sane_builtinFuncs[])(char **) = {&sane_help, &sane_exit};
 
 // Return the number of shell built-in functions.
 int sane_numBuiltins()
@@ -61,9 +72,12 @@ int sane_numBuiltins()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+/// Pipes
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
 /// For 'n' commands we need 'n - 1' pipe structures, which are made up of 2
-/// file
-/// descriptors each.
+/// file descriptors each.
 ////////////////////////////////////////////////////////////////////////////////
 #define MAX_NUM_PIPES ((MAX_NUM_COMMANDS - 1) * 2)
 
@@ -95,6 +109,10 @@ void sane_pipesCreate(unsigned int num)
     }
     sane_numPipes = num;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+/// Execution
+////////////////////////////////////////////////////////////////////////////////
 
 // Stephen Brennan
 pid_t sane_launch(command_t *command, int fdIn, int fdOut)
@@ -142,8 +160,8 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut)
                 if (strcmp(command->argv[0], sane_builtinStr[i]) == 0) {
                     sane_pipesClose();
 
-                    (*sane_builtinFuncs[i])(command->argv);
-                    exit(EXIT_SUCCESS);
+                    int exitStatus = (*sane_builtinFuncs[i])(command->argv);
+                    exit(exitStatus);
                 }
             }
 
@@ -164,9 +182,10 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut)
     return pid;
 }
 
-int sane_execute(int numCommands, command_t *commands)
+void sane_execute(int numCommands, command_t *commands)
 {
     int i = 0;
+
     while (i < numCommands) {
         if (strcmp(commands[i].sep, SEP_SEQ) == 0) {
             // Don't catch SIGCHLD (child terminated) signals during this
@@ -256,10 +275,7 @@ int sane_execute(int numCommands, command_t *commands)
                 wait(&status);
             }
 
-
             i += numPipedCommands;
         }
     }
-
-    return 1;
 }

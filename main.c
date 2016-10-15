@@ -9,13 +9,20 @@
 #include <unistd.h>
 
 #include "command.h"
-#include "token.h"
 #include "sane.h"
+#include "token.h"
 
 #define INPUT_LINE_SIZE 1024
 
-#define EXIT_CMD "exit"
+int sane_shouldQuit = 0;
 
+// SIGUSR1 is sent when "exit" inbuilt command is used
+void sane_handleSiguser1(int signo)
+{
+    sane_shouldQuit = 1;
+}
+
+// SIGCHLD is sent when a child process finishes
 void sane_handleSigchld(int signo)
 {
     // TODO: Save errno? - waitpid may change errno
@@ -33,8 +40,9 @@ void sane_handleSigchld(int signo)
     }
 }
 
-int setupSignalHandlers()
+void setupChildSignalHandler()
 {
+    // Setup sigchld handler
     sigset_t s;
     if (sigemptyset(&s) == 0) {
         sigaddset(&s, SIGCHLD);
@@ -52,19 +60,44 @@ int setupSignalHandlers()
         perror("sane: sigaction");
         exit(1);
     }
+}
 
-    return 0;
+void setupUser1SignalHandler()
+{
+    // Setup sigchld handler
+    sigset_t s;
+    if (sigemptyset(&s) == 0) {
+        sigaddset(&s, SIGUSR1);
+    }
+
+    struct sigaction act;
+    act.sa_flags = 0;
+    act.sa_handler = sane_handleSiguser1;
+    // Initialize mask to contain no signals - no signals are blocked during
+    // the execution of the handler
+    act.sa_mask = 0;
+
+    // Assign handler structure to SIGCHLD
+    if (sigaction(SIGUSR1, &act, NULL) != 0) {
+        perror("sane: sigaction");
+        exit(1);
+    }
+}
+
+void setupSignalHandlers()
+{
+    setupChildSignalHandler();
+    setupUser1SignalHandler();
 }
 
 int main(int argc, char **argv)
 {
     char inputLine[INPUT_LINE_SIZE];
     char *inputPtr = NULL;
-    pid_t pid;
 
     setupSignalHandlers();
 
-    while (1) {
+    while (!(sane_shouldQuit)) {
         memset(inputLine, 0, INPUT_LINE_SIZE);
         printf("%% ");
 
@@ -80,27 +113,24 @@ int main(int argc, char **argv)
         if (inputPtr != NULL) {
             // Remove newline at end of input buffer
             inputLine[strcspn(inputLine, "\n")] = 0;
-            if (strncmp(inputLine, EXIT_CMD, strlen(EXIT_CMD)) == 0) {
-                break;
-            } else {
-                char *token[MAX_NUM_TOKENS];
-                int numTokens = tokenise(inputLine, token);
-                if (numTokens == -1) {
-                    fprintf(stderr, "sane: Number of tokens provided exceeds "
-                                    "MAX_NUM_TOKENS\n");
-                }
-                if (numTokens == -2) {
-                    fprintf(stderr, "sane: String not closed\n");
-                }
 
-                command_t command[MAX_NUM_COMMANDS];
-                // Reset command array
-                memset(command, 0, MAX_NUM_COMMANDS * sizeof(command_t));
-                int numCommands = separateCommands(token, numTokens, command);
+            char *token[MAX_NUM_TOKENS];
+            int numTokens = tokenise(inputLine, token);
+            if (numTokens == -1) {
+                fprintf(stderr, "sane: Number of tokens provided exceeds "
+                                "MAX_NUM_TOKENS\n");
+            }
+            if (numTokens == -2) {
+                fprintf(stderr, "sane: String not closed\n");
+            }
 
-                if (numCommands > 0) {
-                    sane_execute(numCommands, command);
-                }
+            command_t command[MAX_NUM_COMMANDS];
+            // Reset command array
+            memset(command, 0, MAX_NUM_COMMANDS * sizeof(command_t));
+            int numCommands = separateCommands(token, numTokens, command);
+
+            if (numCommands > 0) {
+                sane_execute(numCommands, command);
             }
         }
     }
