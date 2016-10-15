@@ -12,7 +12,8 @@
 #include "sane.h"
 #include "token.h"
 
-#define INPUT_LINE_SIZE 1024
+// Allow at least 256 characters for each token
+#define INPUT_LINE_SIZE (MAX_NUM_TOKENS * 256)
 
 int sane_shouldQuit = 0;
 
