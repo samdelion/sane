@@ -115,7 +115,11 @@ void sane_pipesCreate(unsigned int num)
 /// Execution
 ////////////////////////////////////////////////////////////////////////////////
 
-// Stephen Brennan
+////////////////////////////////////////////////////////////////////////////////
+/// @return If executed by main process, returns 0. If executed by child
+/// process, returns the pid of that child process. In case of error, returns
+/// -1.
+////////////////////////////////////////////////////////////////////////////////
 pid_t sane_launch(command_t *command, int fdIn, int fdOut)
 {
     pid_t pid = -1;
@@ -173,9 +177,6 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut)
                 // Close any open pipes in child
                 sane_pipesClose();
 
-                close(3);
-                close(4);
-
                 // Else, execute command
                 if (execvp(command->argv[0], command->argv) == -1) {
                     perror("sane");
@@ -192,6 +193,7 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut)
                 // If no redirection, use pipe
                 if (fdIn != STDIN_FILENO) {
                     dup2(fdIn, STDIN_FILENO);
+                    close(fdIn);
                 }
             } else {
                 // Else use redirection
@@ -206,6 +208,7 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut)
             if (command->stdout_file == NULL) {
                 if (fdOut != STDOUT_FILENO) {
                     dup2(fdOut, STDOUT_FILENO);
+                    close(fdOut);
                 }
             } else {
                 int out =
