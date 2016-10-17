@@ -349,6 +349,7 @@ void sane_execute(int numCommands, command_t *commands)
             sigprocmask(SIG_SETMASK, &sigset, NULL);
 
             {
+                // TODO: wait on a list of pids
                 int status;
                 for (int k = 0; k < numCommandsToWaitFor; ++k) {
                     wait(&status);
@@ -362,4 +363,11 @@ void sane_execute(int numCommands, command_t *commands)
             i += numPipedCommands;
         }
     }
+
+    // Done executing commands, rewire stdin and stdout in main
+    // process
+    dup2(stdinCopy, 0);
+    dup2(stdoutCopy, 1);
+    close(stdinCopy);
+    close(stdoutCopy);
 }
