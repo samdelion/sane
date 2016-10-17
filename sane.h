@@ -6,6 +6,6 @@ struct command_t;
 ///
 /// @param   numCommands   int, number of commands in the command array.
 /// @param   commands      command_t, command array.
-/// @return                int, 1 for success, 0 in case of error or quit.
 ////////////////////////////////////////////////////////////////////////////////
-int sane_execute(int numCommands, command_t *commands);
+void sane_execute(int numCommands, struct command_t *commands);
+
