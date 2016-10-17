@@ -51,7 +51,7 @@ int sane_help(char **argv)
 
 int sane_exit(char **argv)
 {
-    kill(getppid(), SIGUSR1);
+    kill(getpid(), SIGUSR1);
 
     return EXIT_SUCCESS;
 }
@@ -114,24 +114,90 @@ void sane_pipesCreate(unsigned int num)
 /// Execution
 ////////////////////////////////////////////////////////////////////////////////
 
-// Stephen Brennan
+////////////////////////////////////////////////////////////////////////////////
+/// @return If executed by main process, returns 0. If executed by child
+/// process, returns the pid of that child process. In case of error, returns
+/// -1.
+////////////////////////////////////////////////////////////////////////////////
 pid_t sane_launch(command_t *command, int fdIn, int fdOut)
 {
     pid_t pid = -1;
 
     if (command != NULL) {
-        pid = fork();
-        if (pid == 0) {
-            // Child
+        // Determine if command is built-in
+        int builtInIt = 0;
+        for (; builtInIt < sane_numBuiltins(); ++builtInIt) {
+            if (strcmp(command->argv[0], sane_builtinStr[builtInIt]) == 0) {
+                break;
+            }
+        }
+
+        // Reached end of builtins, command is not a builtin
+        if (builtInIt == sane_numBuiltins()) {
+            // Spawn a child to execute command
+            pid = fork();
+            if (pid == 0) {
+                // Child
+                //  Handle redirection and piping
+                if (command->stdin_file == NULL) {
+                    // If no redirection, use pipe
+                    if (fdIn != STDIN_FILENO) {
+                        dup2(fdIn, STDIN_FILENO);
+                        close(fdIn);
+                    }
+                } else {
+                    // Else use redirection
+                    // @note: redirection overrides piping, similar to bash
+                    // shell
+                    int in = open(command->stdin_file,
+                                  O_RDONLY); // Open for reading only
+                    dup2(in, STDIN_FILENO);
+                    // Close unneeded file descriptor
+                    close(in);
+                }
+                if (command->stdout_file == NULL) {
+                    if (fdOut != STDOUT_FILENO) {
+                        dup2(fdOut, STDOUT_FILENO);
+                        close(fdOut);
+                    }
+                } else {
+                    int out = open(
+                        command->stdout_file, O_WRONLY | O_TRUNC | O_CREAT,
+                        S_IRUSR | S_IRGRP | S_IWGRP |
+                            S_IWUSR); // Open for writing, truncate file to 0
+                                      // (clear it), create file if it does not
+                                      // exist, with read and write permissions
+                                      // for owner of file and group
+                    dup2(out, STDOUT_FILENO);
+                    // Close unneeded file descriptor
+                    close(out);
+                }
+
+                // Close any open pipes in child
+                sane_pipesClose();
+
+                // Else, execute command
+                if (execvp(command->argv[0], command->argv) == -1) {
+                    perror("sane");
+                }
+                exit(EXIT_FAILURE);
+            } else if (pid < 0) {
+                // Error
+                perror("sane");
+            }
+        } else {
+            pid = 0;
             //  Handle redirection and piping
             if (command->stdin_file == NULL) {
                 // If no redirection, use pipe
                 if (fdIn != STDIN_FILENO) {
                     dup2(fdIn, STDIN_FILENO);
+                    close(fdIn);
                 }
             } else {
                 // Else use redirection
-                // @note: redirection overrides piping, similar to bash shell
+                // @note: redirection overrides piping, similar to bash
+                // shell
                 int in = open(command->stdin_file,
                               O_RDONLY); // Open for reading only
                 dup2(in, STDIN_FILENO);
@@ -141,6 +207,7 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut)
             if (command->stdout_file == NULL) {
                 if (fdOut != STDOUT_FILENO) {
                     dup2(fdOut, STDOUT_FILENO);
+                    close(fdOut);
                 }
             } else {
                 int out =
@@ -155,27 +222,8 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut)
                 close(out);
             }
 
-            // If is builtin, execute builtin function (Stephen Brennan)
-            for (int i = 0; i < sane_numBuiltins(); ++i) {
-                if (strcmp(command->argv[0], sane_builtinStr[i]) == 0) {
-                    sane_pipesClose();
-
-                    int exitStatus = (*sane_builtinFuncs[i])(command->argv);
-                    exit(exitStatus);
-                }
-            }
-
-            // Close any open pipes in child
-            sane_pipesClose();
-
-            // Else, execute command
-            if (execvp(command->argv[0], command->argv) == -1) {
-                perror("sane");
-            }
-            exit(EXIT_FAILURE);
-        } else if (pid < 0) {
-            // Error
-            perror("sane");
+            // Execute command
+            (*sane_builtinFuncs[builtInIt])(command->argv);
         }
     }
 
@@ -185,6 +233,9 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut)
 void sane_execute(int numCommands, command_t *commands)
 {
     int i = 0;
+
+    int stdinCopy = dup(0);
+    int stdoutCopy = dup(1);
 
     while (i < numCommands) {
         if (strcmp(commands[i].sep, SEP_SEQ) == 0) {
@@ -198,8 +249,7 @@ void sane_execute(int numCommands, command_t *commands)
             sigprocmask(SIG_SETMASK, &sigset, NULL);
 
             {
-                pid_t pid =
-                    sane_launch(&commands[i], STDIN_FILENO, STDOUT_FILENO);
+                pid_t pid = sane_launch(&commands[i], stdinCopy, stdoutCopy);
 
                 // Wait for child process to finish
                 int status;
@@ -214,10 +264,9 @@ void sane_execute(int numCommands, command_t *commands)
 
             ++i;
         } else if (strcmp(commands[i].sep, SEP_CON) == 0) {
-            pid_t pid = sane_launch(&commands[i], STDIN_FILENO, STDOUT_FILENO);
+            pid_t pid = sane_launch(&commands[i], stdinCopy, stdoutCopy);
 
             // Don't wait for child process to finish
-            printf("%d\n", pid);
 
             ++i;
         }
@@ -244,23 +293,42 @@ void sane_execute(int numCommands, command_t *commands)
             // For n commands we need n-1 pipes
             sane_pipesCreate(numPipedCommands - 1);
 
+            int numCommandsToWaitFor = numPipedCommands;
             for (int k = 0; k < numPipedCommands; ++k) {
+                pid_t pid = -1;
+
                 if (k == 0) {
                     // First command in sequence:
                     //  - Use stdin for in, pipe for out (first write pipe)
-                    sane_launch(&commands[i + k], STDIN_FILENO, sane_pipes[1]);
+                    pid =
+                        sane_launch(&commands[i + k], stdinCopy, sane_pipes[1]);
+
                 } else if (k == numPipedCommands - 1) {
                     // Last command in sequence:
                     //  - Use pipe (last read pipe) for in, stdout for out
-                    sane_launch(&commands[i + k],
-                                sane_pipes[((sane_numPipes * 2) - 1) - 1],
-                                STDOUT_FILENO);
+                    pid = sane_launch(&commands[i + k],
+                                      sane_pipes[((sane_numPipes * 2) - 1) - 1],
+                                      stdoutCopy);
                 } else {
                     // 'k'th command in sequence:
                     //  - Use pipe from previous command for in, pipe for this
                     //  command for out
-                    sane_launch(&commands[i + k], sane_pipes[((k - 1) * 2) + 0],
-                                sane_pipes[(k * 2) + 1]);
+                    pid = sane_launch(&commands[i + k],
+                                      sane_pipes[((k - 1) * 2) + 0],
+                                      sane_pipes[(k * 2) + 1]);
+                }
+
+                // A builtin command was executed
+                if (pid == 0) {
+                    // Done executing commands, rewire stdin and stdout in main
+                    // process
+                    dup2(stdinCopy, 0);
+                    dup2(stdoutCopy, 1);
+                    close(stdinCopy);
+                    close(stdoutCopy);
+
+                    // No need to wait for builtin command
+                    --numCommandsToWaitFor;
                 }
             }
 
@@ -269,13 +337,36 @@ void sane_execute(int numCommands, command_t *commands)
             // Reset all pipes
             sane_pipesReset();
 
+            // Don't catch SIGCHLD (child terminated) signals during this
+            // critical section, otherwise the SIGCHLD signal handler will reap
+            // the process created and the below call to waitpid will fail
+            sigset_t sigset;
+            sigemptyset(&sigset);
+            sigaddset(&sigset, SIGCHLD);
+
             // Wait for each forked child to finish
-            int status;
-            for (int k = 0; k < numPipedCommands; ++k) {
-                wait(&status);
+            sigprocmask(SIG_SETMASK, &sigset, NULL);
+
+            {
+                // TODO: wait on a list of pids
+                int status;
+                for (int k = 0; k < numCommandsToWaitFor; ++k) {
+                    wait(&status);
+                }
             }
+
+            // Allow SIGCHLD signals to be processed again, signals received
+            // during critical section will now be processed.
+            sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
             i += numPipedCommands;
         }
     }
+
+    // Done executing commands, rewire stdin and stdout in main
+    // process
+    dup2(stdinCopy, 0);
+    dup2(stdoutCopy, 1);
+    close(stdinCopy);
+    close(stdoutCopy);
 }
