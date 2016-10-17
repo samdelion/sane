@@ -51,8 +51,7 @@ int sane_help(char **argv)
 
 int sane_exit(char **argv)
 {
-    exit(EXIT_SUCCESS);
-    /* kill(getppid(), SIGUSR1); */
+    kill(getpid(), SIGUSR1);
 
     return EXIT_SUCCESS;
 }
