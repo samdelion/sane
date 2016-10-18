@@ -158,6 +158,7 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut)
                         close(in);
                     } else {
                         perror("sane");
+                        exit(EXIT_FAILURE);
                     }
                 }
                 if (command->stdout_file == NULL) {
