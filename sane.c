@@ -151,9 +151,14 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut)
                     // shell
                     int in = open(command->stdin_file,
                                   O_RDONLY); // Open for reading only
-                    dup2(in, STDIN_FILENO);
-                    // Close unneeded file descriptor
-                    close(in);
+
+                    if (in > 0) {
+                        dup2(in, STDIN_FILENO);
+                        // Close unneeded file descriptor
+                        close(in);
+                    } else {
+                        perror("sane");
+                    }
                 }
                 if (command->stdout_file == NULL) {
                     if (fdOut != STDOUT_FILENO) {
