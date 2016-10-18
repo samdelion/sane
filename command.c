@@ -1,18 +1,18 @@
+#include <glob.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "command.h"
 
-/**
- * Returns 1 if the token is a command separator and 0 otherwise.
- *
- * @param   token   char *, pointer to NULL-terminated string.
- * @return          int, 1 if the token is a command separator and 0 otherwise.
- */
+////////////////////////////////////////////////////////////////////////////////
+/// Returns 1 if the token is a command separator and 0 otherwise.
+///
+/// @param   token   char *, pointer to NULL-terminated string.
+/// @return          int, 1 if the token is a command separator and 0 otherwise.
+////////////////////////////////////////////////////////////////////////////////
 int separator(const char *token)
 {
-    int i = 0;
     char *commandSeparators[] = {SEP_PIPE, SEP_CON, SEP_SEQ, NULL};
 
     for (int i = 0; commandSeparators[i] != NULL; ++i) {
@@ -24,42 +24,56 @@ int separator(const char *token)
     return 0;
 }
 
-/**
- * This function searches the given array of tokens (from cp->first to cp->last)
- * and attempts to find the standard input redirection symbol "<" or the
- * standard output redirection symbol ">". Once found, the token following the
- * redirection symbol is treated as the redirection file name and is assigned to
- * either cp->stdin_file (if input redirection) or cp->stdout_file (if ouput
- * redirection).
- *
- * @todo Multiple redirections - currently uses last found.
- *
- * @param   token   const char *[], array of tokens.
- * @param   cp      command_t *, pointer to command struct.
- * @return          int, 0 if no error,
- *                       -1 if redirect symbol at end of input.
- */
+////////////////////////////////////////////////////////////////////////////////
+/// This function searches the given array of tokens (from cp->first to
+/// cp->last) and attempts to find the standard input redirection symbol "<" or
+/// the standard output redirection symbol ">". Once found, the token following
+/// the redirection symbol is treated as the redirection file name and is
+/// assigned to either cp->stdin_file (if input redirection) or cp->stdout_file
+/// (if ouput redirection).
+///
+/// @todo Multiple redirections - currently uses last found (same as bash).
+///
+/// @param   token   const char *[], array of tokens.
+/// @param   cp      command_t *, pointer to command struct.
+/// @return          int, 0 if no error,
+///                       -1 if redirect symbol at end of input,
+///                       -2 if ambiguous redirect.
+////////////////////////////////////////////////////////////////////////////////
 int searchRedirection(char *token[], command_t *cp)
 {
-    if (cp != NULL)
-    {
-        for (int i = cp->first; i <= cp->last; ++i)
-        {
-            if (strcmp(token[i], REDIR_IN) == 0)
-            {
-                // Redirection token at end of input
+    if (cp != NULL) {
+        for (int i = cp->first; i <= cp->last; ++i) {
+            if (strcmp(token[i], REDIR_IN) == 0 ||
+                strcmp(token[i], REDIR_OUT) == 0) {
+
+                // Check that redirection symbol isn't last token in command
                 if (i == cp->last) {
+                    printf(
+                        "sane: syntax error, expected path after token '%s'\n",
+                        token[i]);
                     return -1;
-                } else {
+                }
+
+                // Check for ambiguity
+                // If requested inpath/outpath contains wildcard characters and
+                // is ambiguous (glob returns more than 1 path), fail
+                glob_t globResult;
+                glob(token[i + 1], 0, NULL, &globResult);
+
+                if (globResult.gl_pathc > 1) {
+                    // Skip command
+                    printf("sane: %s: ambiguous redirect\n", token[i + 1]);
+                    return -2;
+                }
+
+                globfree(&globResult);
+
+                // Else, handle redirection
+                if (strcmp(token[i], REDIR_IN) == 0) {
                     cp->stdin_file = token[i + 1];
                     ++i;
-                }
-            } else if (strcmp(token[i], REDIR_OUT) == 0)
-            {
-                // Redirection token at end of input
-                if (i == cp->last) {
-                    return -1;
-                } else {
+                } else if (strcmp(token[i], REDIR_OUT) == 0) {
                     cp->stdout_file = token[i + 1];
                     ++i;
                 }
@@ -78,17 +92,28 @@ int searchRedirection(char *token[], command_t *cp)
  */
 void buildCommandArgumentArray(char *token[], command_t *cp)
 {
+    // TODO: Doesn't work properly if more than two redirection operators used
+    // from first to last
+    // continue until find < > | & ;, go back one token, this is the string to
+    // glob
+    // For each token excluding first, glob and expand.
+    // Alloc an array to fit all, use that array as argv
     unsigned int n = (cp->last - cp->first + 1) // number of tokens in command
-        - (cp->stdin_file == NULL ? 0 : 2)      // remove two tokens for stdin redirection
-        - (cp->stdout_file == NULL ? 0 : 2)     // remove two tokens for stdout redirection
-        + 1; // last element in argv must be NULL
+                     - (cp->stdin_file == NULL
+                            ? 0
+                            : 2) // remove two tokens for stdin redirection
+                     - (cp->stdout_file == NULL
+                            ? 0
+                            : 2) // remove two tokens for stdout redirection
+                     + 1;        // last element in argv must be NULL
 
     cp->argv = realloc(cp->argv, sizeof(char *) * n);
 
     int k = 0;
     for (int i = cp->first; i <= cp->last; ++i) {
-        if (strcmp(token[i], REDIR_OUT) == 0 || strcmp(token[i], REDIR_IN) == 0) {
-            ++i; // skip off the std(in/out) redirection
+        if (strcmp(token[i], REDIR_OUT) == 0 ||
+            strcmp(token[i], REDIR_IN) == 0) {
+            ++i; // don't include the std(in/out) redirection tokens
         } else {
             cp->argv[k] = token[i];
             ++k;
@@ -99,6 +124,8 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
 
 int separateCommands(char *token[], int numTokens, command_t command[])
 {
+    int result = 0;
+
     // If empty command line
     if (numTokens == 0) {
         return 0;
@@ -121,7 +148,7 @@ int separateCommands(char *token[], int numTokens, command_t command[])
         if (separator(token[i])) {
             sep = token[i];
 
-            if (first == last) {  // Two consecutive separators
+            if (first == last) { // Two consecutive separators
                 return -2;
             }
 
@@ -136,7 +163,8 @@ int separateCommands(char *token[], int numTokens, command_t command[])
             // Add sequence separator
             sep = SEP_SEQ;
 
-            if (first == last && separator(token[first])) {  // Two consecutive separators
+            if (first == last &&
+                separator(token[first])) { // Two consecutive separators
                 return -2;
             }
 
@@ -150,11 +178,6 @@ int separateCommands(char *token[], int numTokens, command_t command[])
         }
     }
 
-    // Check the last token of the last command
-    if (strcmp(token[last], SEP_PIPE) == 0) { // last token is pipe separator
-        return -4;
-    }
-
     int numCommands = c;
 
     for (int i = 0; i < numCommands; ++i) {
@@ -163,11 +186,20 @@ int separateCommands(char *token[], int numTokens, command_t command[])
         // Redirection operator at end of command (no file specified)
         if (err == -1) {
             return -5;
+        } else if (err == -2) {
+            result = -6;
         }
 
         // Build argv for each command.
         buildCommandArgumentArray(token, &(command[i]));
     }
 
-    return numCommands;
+    // Check the last token of the last command
+    if (strcmp(token[last], SEP_PIPE) == 0) { // last token is pipe separator
+        printf("sane: syntax error, last token should not be pipe\n");
+        return -4;
+    }
+
+
+    return (result == 0 ? numCommands : result);
 }

@@ -42,6 +42,7 @@ typedef struct command_t {
 ///      b) -3, if the first token is a command separator.
 ///      c) -4, if the last command is followed by the command separator "|"
 ///      d) -5, the redirection operator is the last token in any given command.
+///      e) -6, ambiguous redirect (e.g. echo "Hello" > o.*)
 ///  3) Else, the number of commands found in the list of tokens.
 ///
 /// @todo Return error struct instead, with pos of token causing error.
