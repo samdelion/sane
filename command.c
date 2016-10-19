@@ -69,24 +69,43 @@ int searchRedirection(char *token[], command_t *cp)
                     return -2;
                 }
 
-                globfree(&globResult);
-
-                // Else, handle redirection
-                if (strcmp(token[i], REDIR_IN) == 0) {
-                    size_t len =
-                        strlen(token[i + 1]) + 1; // + 1 for NULL-terminator
-                    char *tmp = (char *)malloc(sizeof(char) * len);
-                    memset(tmp, '\0', len);
-                    cp->stdin_file = strcpy(tmp, token[i + 1]);
-                    ++i;
-                } else if (strcmp(token[i], REDIR_OUT) == 0) {
-                    size_t len =
-                        strlen(token[i + 1]) + 1; // + 1 for NULL-terminator
-                    char *tmp = (char *)malloc(sizeof(char) * len);
-                    memset(tmp, '\0', len);
-                    cp->stdout_file = strcpy(tmp, token[i + 1]);
-                    ++i;
+                if (globResult.gl_pathc > 0) { // Exactly one path matched
+                    // Else, handle redirection
+                    if (strcmp(token[i], REDIR_IN) == 0) {
+                        size_t len = strlen(globResult.gl_pathv[0]) +
+                                     1; // + 1 for NULL-terminator
+                        char *tmp = (char *)malloc(sizeof(char) * len);
+                        memset(tmp, '\0', len);
+                        cp->stdin_file = strcpy(tmp, globResult.gl_pathv[0]);
+                        ++i;
+                    } else if (strcmp(token[i], REDIR_OUT) == 0) {
+                        size_t len = strlen(globResult.gl_pathv[0]) +
+                                     1; // + 1 for NULL-terminator
+                        char *tmp = (char *)malloc(sizeof(char) * len);
+                        memset(tmp, '\0', len);
+                        cp->stdout_file = strcpy(tmp, globResult.gl_pathv[0]);
+                        ++i;
+                    }
+                } else { // No paths matched
+                    // Just use token
+                    if (strcmp(token[i], REDIR_IN) == 0) {
+                        size_t len = strlen(token[i + 1]) +
+                            1; // + 1 for NULL-terminator
+                        char *tmp = (char *)malloc(sizeof(char) * len);
+                        memset(tmp, '\0', len);
+                        cp->stdin_file = strcpy(tmp, token[i + 1]);
+                        ++i;
+                    } else if (strcmp(token[i], REDIR_OUT) == 0) {
+                        size_t len = strlen(token[i + 1]) +
+                            1; // + 1 for NULL-terminator
+                        char *tmp = (char *)malloc(sizeof(char) * len);
+                        memset(tmp, '\0', len);
+                        cp->stdout_file = strcpy(tmp, token[i + 1]);
+                        ++i;
+                    }
                 }
+
+                globfree(&globResult);
             }
         }
     }
@@ -145,9 +164,9 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
     int offset = 0;
     for (int i = cp->first + 1; i < ii; ++i) {
         glob_t globResult;
-        glob(token[i], 0, NULL, &globResult);
+        glob(token[i], GLOB_TILDE, NULL, &globResult);
 
-        if (globResult.gl_pathc > 1) {
+        if (globResult.gl_pathc > 0) {
             n += globResult.gl_pathc - 1; // already counted one of the paths
 
             cp->argv = realloc(cp->argv, sizeof(char *) * n);
@@ -161,7 +180,10 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
 
             offset += globResult.gl_pathc - 1;
         } else {
-            cp->argv[i + offset] = token[i];
+            size_t len = strlen(token[i]) + 1; // +1 for NULL terminator
+            char *tmp = (char *)malloc(sizeof(char) * len);
+            memset(tmp, '\0', len);
+            cp->argv[i + offset] = strcpy(tmp, token[i]);
         }
 
         globfree(&globResult);
