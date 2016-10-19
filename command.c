@@ -98,28 +98,68 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
     // glob
     // For each token excluding first, glob and expand.
     // Alloc an array to fit all, use that array as argv
-    unsigned int n = (cp->last - cp->first + 1) // number of tokens in command
-                     - (cp->stdin_file == NULL
-                            ? 0
-                            : 2) // remove two tokens for stdin redirection
-                     - (cp->stdout_file == NULL
-                            ? 0
-                            : 2) // remove two tokens for stdout redirection
-                     + 1;        // last element in argv must be NULL
-
-    cp->argv = realloc(cp->argv, sizeof(char *) * n);
-
-    int k = 0;
-    for (int i = cp->first; i <= cp->last; ++i) {
-        if (strcmp(token[i], REDIR_OUT) == 0 ||
-            strcmp(token[i], REDIR_IN) == 0) {
-            ++i; // don't include the std(in/out) redirection tokens
-        } else {
-            cp->argv[k] = token[i];
-            ++k;
+    int ii = cp->first;
+    for (; ii <= cp->last; ++ii) {
+        if (strcmp(token[ii], REDIR_OUT) == 0 ||
+            strcmp(token[ii], REDIR_IN) == 0 || separator(token[ii])) {
+            /* printf("stop: %s\n", token[ii]); */
+            break;
         }
     }
-    cp->argv[k] = NULL;
+
+    unsigned int n = (ii - cp->first) + 1; // Last element in argv must be NULL
+
+    /* unsigned int n = (cp->last - cp->first + 1) // number of tokens in
+     * command */
+    /*                  - (cp->stdin_file == NULL */
+    /*                         ? 0 */
+    /*                         : 2) // remove two tokens for stdin redirection
+     */
+    /*                  - (cp->stdout_file == NULL */
+    /*                         ? 0 */
+    /*                         : 2) // remove two tokens for stdout redirection
+     */
+    /*                  + 1;        // last element in argv must be NULL */
+
+    // Glob from cp->first + 1 (don't glob command call)
+    // for each token
+    //  for each glob > 1, ++n
+    // allocate array
+    // add each globbed path to argv array
+    // loop thru entire argv
+
+    cp->argv = realloc(cp->argv, sizeof(char *) * n);
+    cp->argv[0] = token[0];
+
+    // Don't glob command
+    int offset = 0;
+    for (int i = cp->first + 1; i < ii; ++i) {
+        glob_t globResult;
+        glob(token[i], 0, NULL, &globResult);
+
+        if (globResult.gl_pathc > 1) {
+            n += globResult.gl_pathc - 1; // already counted one of the paths
+
+            cp->argv = realloc(cp->argv, sizeof(char *) * n);
+            for (int j = 0; j < globResult.gl_pathc; ++j) {
+                cp->argv[i + j + offset] = globResult.gl_pathv[j];
+            }
+
+            offset += globResult.gl_pathc - 1;
+        } else {
+            cp->argv[i + offset] = token[i];
+        }
+
+        /* globfree(&globResult); */
+    }
+    cp->argv[n - 1] = NULL;
+
+    /* int k = 0; */
+    /* for (int i = ii; i <= cp->last; ++i) { */
+    /*     cp->argv[k] = token[i]; */
+    /*     ++k; */
+    /* } */
+    /* cp->argv[k] = NULL; */
 }
 
 int separateCommands(char *token[], int numTokens, command_t command[])
