@@ -156,7 +156,7 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
                 cp->argv[j + offset] = strcpy(tmp, globResult.gl_pathv[j]);
             }
 
-            offset += globResult.gl_pathc - 1;
+            offset += globResult.gl_pathc;
         } else {
             size_t len = strlen(token[i]) + 1; // +1 for NULL terminator
             char *tmp = (char *)malloc(sizeof(char) * len);
