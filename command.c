@@ -134,12 +134,12 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
 
     cp->argv = realloc(cp->argv, sizeof(char *) * n);
     // Don't match any wildcards in command
-    size_t len = strlen(token[0]) + 1;
-    char *tmp = (char *)malloc(sizeof(char) * len);
-    memset(tmp, '\0', len);
-    cp->argv[0] = strcpy(tmp, token[0]);
+    size_t len1 = strlen(token[cp->first]) + 1;
+    char *tmp1 = (char *)malloc(sizeof(char) * len1);
+    memset(tmp1, '\0', len1);
+    cp->argv[0] = strcpy(tmp1, token[cp->first]);
 
-    int offset = 0;
+    int offset = 1;
     for (int i = cp->first + 1; i < ii; ++i) {
         glob_t globResult;
         glob(token[i], GLOB_TILDE, NULL, &globResult);
@@ -153,7 +153,7 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
                              1; // +1 for NULL terminator
                 char *tmp = (char *)malloc(sizeof(char) * len);
                 memset(tmp, '\0', len);
-                cp->argv[i + j + offset] = strcpy(tmp, globResult.gl_pathv[j]);
+                cp->argv[j + offset] = strcpy(tmp, globResult.gl_pathv[j]);
             }
 
             offset += globResult.gl_pathc - 1;
@@ -161,7 +161,8 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
             size_t len = strlen(token[i]) + 1; // +1 for NULL terminator
             char *tmp = (char *)malloc(sizeof(char) * len);
             memset(tmp, '\0', len);
-            cp->argv[i + offset] = strcpy(tmp, token[i]);
+            cp->argv[offset] = strcpy(tmp, token[i]);
+            ++offset;
         }
 
         globfree(&globResult);
@@ -255,24 +256,24 @@ void freeCommands(command_t command[], int numCommands)
 {
     for (unsigned int i = 0; i < numCommands; ++i) {
         // Free input redirection
-        if (command->stdin_file != NULL) {
-            free(command->stdin_file);
-            command->stdin_file = NULL;
+        if (command[i].stdin_file != NULL) {
+            free(command[i].stdin_file);
+            command[i].stdin_file = NULL;
         }
         // Free output redirection
-        if (command->stdout_file != NULL) {
-            free(command->stdout_file);
-            command->stdout_file = NULL;
+        if (command[i].stdout_file != NULL) {
+            free(command[i].stdout_file);
+            command[i].stdout_file = NULL;
         }
 
-        if (command->argv != NULL) {
+        if (command[i].argv != NULL) {
             // Free each token
-            for (int j = 0; command->argv[j] != NULL; ++j) {
-                free(command->argv[j]);
+            for (int j = 0; command[i].argv[j] != NULL; ++j) {
+                free(command[i].argv[j]);
             }
             // Free array
-            free(command->argv);
-            command->argv = NULL;
+            free(command[i].argv);
+            command[i].argv = NULL;
         }
     }
 }
