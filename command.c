@@ -89,15 +89,15 @@ int searchRedirection(char *token[], command_t *cp)
                 } else { // No paths matched
                     // Just use token
                     if (strcmp(token[i], REDIR_IN) == 0) {
-                        size_t len = strlen(token[i + 1]) +
-                            1; // + 1 for NULL-terminator
+                        size_t len =
+                            strlen(token[i + 1]) + 1; // + 1 for NULL-terminator
                         char *tmp = (char *)malloc(sizeof(char) * len);
                         memset(tmp, '\0', len);
                         cp->stdin_file = strcpy(tmp, token[i + 1]);
                         ++i;
                     } else if (strcmp(token[i], REDIR_OUT) == 0) {
-                        size_t len = strlen(token[i + 1]) +
-                            1; // + 1 for NULL-terminator
+                        size_t len =
+                            strlen(token[i + 1]) + 1; // + 1 for NULL-terminator
                         char *tmp = (char *)malloc(sizeof(char) * len);
                         memset(tmp, '\0', len);
                         cp->stdout_file = strcpy(tmp, token[i + 1]);
@@ -121,12 +121,6 @@ int searchRedirection(char *token[], command_t *cp)
  */
 void buildCommandArgumentArray(char *token[], command_t *cp)
 {
-    // TODO: Doesn't work properly if more than two redirection operators used
-    // from first to last
-    // continue until find < > | & ;, go back one token, this is the string to
-    // glob
-    // For each token excluding first, glob and expand.
-    // Alloc an array to fit all, use that array as argv
     int ii = cp->first;
     for (; ii <= cp->last; ++ii) {
         if (strcmp(token[ii], REDIR_OUT) == 0 ||
@@ -138,29 +132,13 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
 
     unsigned int n = (ii - cp->first) + 1; // Last element in argv must be NULL
 
-    /* unsigned int n = (cp->last - cp->first + 1) // number of tokens in
-     * command */
-    /*                  - (cp->stdin_file == NULL */
-    /*                         ? 0 */
-    /*                         : 2) // remove two tokens for stdin redirection
-     */
-    /*                  - (cp->stdout_file == NULL */
-    /*                         ? 0 */
-    /*                         : 2) // remove two tokens for stdout redirection
-     */
-    /*                  + 1;        // last element in argv must be NULL */
-
-    // Glob from cp->first + 1 (don't glob command call)
-    // for each token
-    //  for each glob > 1, ++n
-    // allocate array
-    // add each globbed path to argv array
-    // loop thru entire argv
-
     cp->argv = realloc(cp->argv, sizeof(char *) * n);
-    cp->argv[0] = token[0];
+    // Don't match any wildcards in command
+    size_t len = strlen(token[0]) + 1;
+    char *tmp = (char *)malloc(sizeof(char) * len);
+    memset(tmp, '\0', len);
+    cp->argv[0] = strcpy(tmp, token[0]);
 
-    // Don't glob command
     int offset = 0;
     for (int i = cp->first + 1; i < ii; ++i) {
         glob_t globResult;
@@ -189,13 +167,6 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
         globfree(&globResult);
     }
     cp->argv[n - 1] = NULL;
-
-    /* int k = 0; */
-    /* for (int i = ii; i <= cp->last; ++i) { */
-    /*     cp->argv[k] = token[i]; */
-    /*     ++k; */
-    /* } */
-    /* cp->argv[k] = NULL; */
 }
 
 int separateCommands(char *token[], int numTokens, command_t command[])
@@ -278,4 +249,30 @@ int separateCommands(char *token[], int numTokens, command_t command[])
 
 
     return (result == 0 ? numCommands : result);
+}
+
+void freeCommands(command_t command[], int numCommands)
+{
+    for (unsigned int i = 0; i < numCommands; ++i) {
+        // Free input redirection
+        if (command->stdin_file != NULL) {
+            free(command->stdin_file);
+            command->stdin_file = NULL;
+        }
+        // Free output redirection
+        if (command->stdout_file != NULL) {
+            free(command->stdout_file);
+            command->stdout_file = NULL;
+        }
+
+        if (command->argv != NULL) {
+            // Free each token
+            for (int j = 0; command->argv[j] != NULL; ++j) {
+                free(command->argv[j]);
+            }
+            // Free array
+            free(command->argv);
+            command->argv = NULL;
+        }
+    }
 }

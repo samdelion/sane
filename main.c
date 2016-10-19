@@ -144,6 +144,8 @@ int main(int argc, char **argv)
 
                 if (numCommands > 0) {
                     sane_execute(numCommands, command);
+
+                    freeCommands(command, numCommands);
                 }
             }
         }

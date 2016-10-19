@@ -53,3 +53,14 @@ typedef struct command_t {
 /// calling this function.
 ////////////////////////////////////////////////////////////////////////////////
 int separateCommands(char *token[], int numTokens, command_t command[]);
+
+////////////////////////////////////////////////////////////////////////////////
+/// Free all dynamically allocated memory associated with the given numCommands
+/// in the passed command array.
+///
+/// @pre There are atleast numCommands in the command array.
+///
+/// @param   command       command_t [], array of commands to free.
+/// @param   numCommands   int, number of commands in command array to free.
+////////////////////////////////////////////////////////////////////////////////
+void freeCommands(command_t command[], int numCommands);
