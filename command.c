@@ -64,7 +64,8 @@ int searchRedirection(char *token[], command_t *cp)
 
                 if (globResult.gl_pathc > 1) {
                     // Skip command
-                    fprintf(stderr, "sane: %s: ambiguous redirect\n", token[i + 1]);
+                    fprintf(stderr, "sane: %s: ambiguous redirect\n",
+                            token[i + 1]);
                     return -2;
                 }
 
@@ -72,10 +73,18 @@ int searchRedirection(char *token[], command_t *cp)
 
                 // Else, handle redirection
                 if (strcmp(token[i], REDIR_IN) == 0) {
-                    cp->stdin_file = token[i + 1];
+                    size_t len =
+                        strlen(token[i + 1]) + 1; // + 1 for NULL-terminator
+                    char *tmp = (char *)malloc(sizeof(char) * len);
+                    memset(tmp, '\0', len);
+                    cp->stdin_file = strcpy(tmp, token[i + 1]);
                     ++i;
                 } else if (strcmp(token[i], REDIR_OUT) == 0) {
-                    cp->stdout_file = token[i + 1];
+                    size_t len =
+                        strlen(token[i + 1]) + 1; // + 1 for NULL-terminator
+                    char *tmp = (char *)malloc(sizeof(char) * len);
+                    memset(tmp, '\0', len);
+                    cp->stdout_file = strcpy(tmp, token[i + 1]);
                     ++i;
                 }
             }
@@ -143,7 +152,11 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
 
             cp->argv = realloc(cp->argv, sizeof(char *) * n);
             for (int j = 0; j < globResult.gl_pathc; ++j) {
-                cp->argv[i + j + offset] = globResult.gl_pathv[j];
+                size_t len = strlen(globResult.gl_pathv[j]) +
+                             1; // +1 for NULL terminator
+                char *tmp = (char *)malloc(sizeof(char) * len);
+                memset(tmp, '\0', len);
+                cp->argv[i + j + offset] = strcpy(tmp, globResult.gl_pathv[j]);
             }
 
             offset += globResult.gl_pathc - 1;
@@ -151,7 +164,7 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
             cp->argv[i + offset] = token[i];
         }
 
-        /* globfree(&globResult); */
+        globfree(&globResult);
     }
     cp->argv[n - 1] = NULL;
 
