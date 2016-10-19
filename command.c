@@ -49,7 +49,8 @@ int searchRedirection(char *token[], command_t *cp)
 
                 // Check that redirection symbol isn't last token in command
                 if (i == cp->last) {
-                    printf(
+                    fprintf(
+                        stderr,
                         "sane: syntax error, expected path after token '%s'\n",
                         token[i]);
                     return -1;
@@ -63,7 +64,7 @@ int searchRedirection(char *token[], command_t *cp)
 
                 if (globResult.gl_pathc > 1) {
                     // Skip command
-                    printf("sane: %s: ambiguous redirect\n", token[i + 1]);
+                    fprintf(stderr, "sane: %s: ambiguous redirect\n", token[i + 1]);
                     return -2;
                 }
 
@@ -236,7 +237,7 @@ int separateCommands(char *token[], int numTokens, command_t command[])
 
     // Check the last token of the last command
     if (strcmp(token[last], SEP_PIPE) == 0) { // last token is pipe separator
-        printf("sane: syntax error, last token should not be pipe\n");
+        fprintf(stderr, "sane: syntax error, last token should not be pipe\n");
         return -4;
     }
 
