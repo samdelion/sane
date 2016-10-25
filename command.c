@@ -133,7 +133,7 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
     unsigned int n = (ii - cp->first) + 1; // Last element in argv must be NULL
 
     cp->argv = realloc(cp->argv, sizeof(char *) * n);
-    // Don't match any wildcards in command
+    // Don't match any wildcards in first token (command to execute)
     size_t len1 = strlen(token[cp->first]) + 1;
     char *tmp1 = (char *)malloc(sizeof(char) * len1);
     memset(tmp1, '\0', len1);
@@ -151,17 +151,56 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
             for (int j = 0; j < globResult.gl_pathc; ++j) {
                 size_t len = strlen(globResult.gl_pathv[j]) +
                              1; // +1 for NULL terminator
+                // Look thru array and take decrement length if find '\' (escape
+                // character)
+                for (int k = 0; k < strlen(globResult.gl_pathv[j]); ++k) {
+                    if (globResult.gl_pathv[j][k] == '\\') {
+                        --len;
+                    }
+                }
                 char *tmp = (char *)malloc(sizeof(char) * len);
                 memset(tmp, '\0', len);
-                cp->argv[j + offset] = strcpy(tmp, globResult.gl_pathv[j]);
+
+                int k = 0;
+                for (char *it = globResult.gl_pathv[j]; *it != '\0'; ++it) {
+                    // Handle escape characters
+                    if (*it == '\\') {
+                        // Make sure to ignore next character
+                        tmp[k] = *(it + 1);
+                        ++it;
+                    } else {
+                        tmp[k] = *it;
+                    }
+                    ++k;
+                }
+                cp->argv[j + offset] = tmp;
             }
 
             offset += globResult.gl_pathc;
         } else {
             size_t len = strlen(token[i]) + 1; // +1 for NULL terminator
+            for (int k = 0; k < strlen(token[i]); ++k) {
+                if (token[i][k] == '\\') {
+                    --len;
+                }
+            }
             char *tmp = (char *)malloc(sizeof(char) * len);
             memset(tmp, '\0', len);
-            cp->argv[offset] = strcpy(tmp, token[i]);
+
+            int k = 0;
+            for (char *it = token[i]; *it != '\0'; ++it) {
+                // Handle escape characters
+                if (*it == '\\') {
+                    // Make sure to ignore next character
+                    tmp[k] = *(it + 1);
+                    ++it;
+                } else {
+                    tmp[k] = *it;
+                }
+                ++k;
+            }
+
+            cp->argv[offset] = tmp;
             ++offset;
         }
 

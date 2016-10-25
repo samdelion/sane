@@ -136,11 +136,10 @@ int main(int argc, char **argv)
                         fprintf(stderr,
                                 "sane: Number of tokens provided exceeds "
                                 "MAX_NUM_TOKENS\n");
-                    }
-                    if (numTokens == -2) {
+                    } else if (numTokens == -2) {
                         fprintf(stderr, "sane: String not closed\n");
                     }
-
+                    
                     command_t command[MAX_NUM_COMMANDS];
                     // Reset command array
                     memset(command, 0, MAX_NUM_COMMANDS * sizeof(command_t));
