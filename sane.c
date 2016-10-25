@@ -4,6 +4,7 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <assert.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
@@ -15,6 +16,44 @@
 
 #include "command.h"
 #include "sane.h"
+
+static char *sane_promptString = NULL;
+
+const char *sane_getPrompt()
+{
+    return sane_promptString;
+}
+
+int sane_init()
+{
+    int result = 0;
+
+    assert(sane_promptString == NULL &&
+           "sane_promptString was set before sane_init()");
+
+    // Set default prompt
+    const char *defaultPrompt = "%";
+
+    size_t promptLen = strlen(defaultPrompt) + 1;
+    sane_promptString = (char *)malloc(promptLen);
+
+    // Ensure memory allocation did not fail
+    if (sane_promptString != NULL) {
+        memset(sane_promptString, '\0', promptLen);
+        strcpy(sane_promptString, defaultPrompt);
+    } else {
+        result = 1;
+    }
+
+    return result;
+}
+
+void sane_shutdown()
+{
+    if (sane_promptString != NULL) {
+        free(sane_promptString);
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Shell built-in function declarations.
@@ -58,7 +97,27 @@ int sane_exit(int argc, char **argv)
 
 int sane_prompt(int argc, char **argv)
 {
-    printf("Number of arguments passed: %d\n", argc);
+    // Did we receive the correct number of arguments?
+    if (argc == 2) {
+        // Free previous prompt
+        free(sane_promptString);
+
+        // Set new prompt
+        size_t promptLen = strlen(argv[1]) + 1;
+        sane_promptString = (char *)malloc(promptLen);
+
+        // Ensure memory allocation did not fail
+        if (sane_promptString != NULL) {
+            memset(sane_promptString, '\0', promptLen);
+            strcpy(sane_promptString, argv[1]);
+        } else {
+            return EXIT_FAILURE;
+        }
+    } else {
+        fprintf(stderr, "usage: prompt [string]\n");
+        return EXIT_FAILURE;
+    }
+
     return EXIT_SUCCESS;
 }
 
