@@ -20,13 +20,13 @@
 /// Shell built-in function declarations.
 ////////////////////////////////////////////////////////////////////////////////
 
-/* int sane_cd(char **argv); */
-int sane_exit(char **argv);
-int sane_help(char **argv);
-/* int sane_prompt(char **argv); */
-/* int sane_pwd(char **argv); */
+/* int sane_cd(int argc, char **argv); */
+int sane_exit(int argc, char **argv);
+int sane_help(int argc, char **argv);
+int sane_prompt(int argc, char **argv);
+/* int sane_pwd(int argc, char **argv); */
 
-int sane_help(char **argv)
+int sane_help(int argc, char **argv)
 {
     printf("     ___           ___           ___           ___     ");
     printf("\n    /\\  \\         /\\  \\         /\\__\\         /\\  \\    ");
@@ -49,21 +49,28 @@ int sane_help(char **argv)
     return EXIT_SUCCESS;
 }
 
-int sane_exit(char **argv)
+int sane_exit(int argc, char **argv)
 {
     kill(getpid(), SIGUSR1);
 
     return EXIT_SUCCESS;
 }
 
+int sane_prompt(int argc, char **argv)
+{
+    printf("Number of arguments passed: %d\n", argc);
+    return EXIT_SUCCESS;
+}
+
 /* // Strings used to call built-in functions and function pointer */
 /* // (note order matches in both arrays) */
 /* char *sane_builtinStr[] = {"cd", "exit", "help", "prompt", "pwd"}; */
-char *sane_builtinStr[] = {"help", "exit"};
+char *sane_builtinStr[] = {"help", "exit", "prompt"};
 
-/* int (*sane_builtinFunc[])(char **) = {&sane_cd, &sane_exit, &sane_help, */
-/*                                       &sane_prompt, &sane_pwd}; */
-int (*sane_builtinFuncs[])(char **) = {&sane_help, &sane_exit};
+/* int (*sane_builtinFunc[])(int, char **) = {&sane_cd, &sane_exit, &sane_help,
+ * &sane_prompt, &sane_pwd}; */
+int (*sane_builtinFuncs[])(int, char **) = {&sane_help, &sane_exit,
+                                            &sane_prompt};
 
 // Return the number of shell built-in functions.
 int sane_numBuiltins()
@@ -222,8 +229,13 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut)
                 close(out);
             }
 
+            int argc = 0;
+            for (int i = 0; command->argv[i] != NULL; ++i) {
+                ++argc;
+            }
+
             // Execute command
-            (*sane_builtinFuncs[builtInIt])(command->argv);
+            (*sane_builtinFuncs[builtInIt])(argc, command->argv);
         }
     }
 
