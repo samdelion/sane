@@ -76,7 +76,7 @@ void setupUser1SignalHandler()
     act.sa_handler = sane_handleSiguser1;
     // Initialize mask to contain no signals - no signals are blocked during
     // the execution of the handler
-    act.sa_mask = 0;
+    sigemptyset(&(act.sa_mask));
 
     // Assign handler structure to SIGCHLD
     if (sigaction(SIGUSR1, &act, NULL) != 0) {
@@ -123,8 +123,7 @@ int main(int argc, char **argv)
                 } while (inputPtr == NULL && errno == EINTR);
 
                 // TODO: Remove. For now, I would like to know cases where this
-                // is
-                // true
+                // is true
                 assert(inputPtr != NULL && "Couldn't get input!\n");
 
                 if (inputPtr != NULL) {
@@ -162,6 +161,8 @@ int main(int argc, char **argv)
 
                     if (numCommands > 0) {
                         sane_execute(numCommands, command);
+
+                        freeCommands(command, numCommands);
                     }
                 }
             }

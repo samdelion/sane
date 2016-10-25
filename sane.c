@@ -217,9 +217,15 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut)
                     // shell
                     int in = open(command->stdin_file,
                                   O_RDONLY); // Open for reading only
-                    dup2(in, STDIN_FILENO);
-                    // Close unneeded file descriptor
-                    close(in);
+
+                    if (in > 0) {
+                        dup2(in, STDIN_FILENO);
+                        // Close unneeded file descriptor
+                        close(in);
+                    } else {
+                        perror("sane open");
+                        exit(EXIT_FAILURE);
+                    }
                 }
                 if (command->stdout_file == NULL) {
                     if (fdOut != STDOUT_FILENO) {
@@ -244,12 +250,12 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut)
 
                 // Else, execute command
                 if (execvp(command->argv[0], command->argv) == -1) {
-                    perror("sane");
+                    perror("sane exec");
                 }
                 exit(EXIT_FAILURE);
             } else if (pid < 0) {
                 // Error
-                perror("sane");
+                perror("sane fork");
             }
         } else {
             pid = 0;
@@ -266,9 +272,14 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut)
                 // shell
                 int in = open(command->stdin_file,
                               O_RDONLY); // Open for reading only
-                dup2(in, STDIN_FILENO);
-                // Close unneeded file descriptor
-                close(in);
+                if (in > 0) {
+                    dup2(in, STDIN_FILENO);
+                    // Close unneeded file descriptor
+                    close(in);
+                } else {
+                    perror("sane open");
+                    exit(EXIT_FAILURE);
+                }
             }
             if (command->stdout_file == NULL) {
                 if (fdOut != STDOUT_FILENO) {
@@ -311,7 +322,8 @@ void sane_execute(int numCommands, command_t *commands)
     while (i < numCommands) {
         if (strcmp(commands[i].sep, SEP_SEQ) == 0) {
             // Don't catch SIGCHLD (child terminated) signals during this
-            // critical section, otherwise the SIGCHLD signal handler will reap
+            // critical section, otherwise the SIGCHLD signal handler will
+            // reap
             // the process created and the below call to waitpid will fail
             sigset_t sigset;
             sigemptyset(&sigset);
@@ -320,7 +332,7 @@ void sane_execute(int numCommands, command_t *commands)
             sigprocmask(SIG_SETMASK, &sigset, NULL);
 
             {
-                pid_t pid = sane_launch(&commands[i], stdinCopy, stdoutCopy);
+                pid_t pid = sane_launch(&commands[i], STDIN_FILENO, STDOUT_FILENO);
 
                 // Wait for child process to finish
                 int status;
@@ -335,7 +347,7 @@ void sane_execute(int numCommands, command_t *commands)
 
             ++i;
         } else if (strcmp(commands[i].sep, SEP_CON) == 0) {
-            pid_t pid = sane_launch(&commands[i], stdinCopy, stdoutCopy);
+            pid_t pid = sane_launch(&commands[i], STDIN_FILENO, STDOUT_FILENO);
 
             // Don't wait for child process to finish
 
@@ -348,7 +360,8 @@ void sane_execute(int numCommands, command_t *commands)
             //
             // 'whoami ; cat out.txt | sort | less ; echo "Hello"'
             //           |_________________________|
-            // this section ^ would be considered a sequence of piped commands.
+            // this section ^ would be considered a sequence of piped
+            // commands.
 
             // Find out how many to execute
             int numPipedCommands = 0;
@@ -372,17 +385,18 @@ void sane_execute(int numCommands, command_t *commands)
                     // First command in sequence:
                     //  - Use stdin for in, pipe for out (first write pipe)
                     pid =
-                        sane_launch(&commands[i + k], stdinCopy, sane_pipes[1]);
+                        sane_launch(&commands[i + k], STDIN_FILENO, sane_pipes[1]);
 
                 } else if (k == numPipedCommands - 1) {
                     // Last command in sequence:
                     //  - Use pipe (last read pipe) for in, stdout for out
                     pid = sane_launch(&commands[i + k],
                                       sane_pipes[((sane_numPipes * 2) - 1) - 1],
-                                      stdoutCopy);
+                                      STDOUT_FILENO);
                 } else {
                     // 'k'th command in sequence:
-                    //  - Use pipe from previous command for in, pipe for this
+                    //  - Use pipe from previous command for in, pipe for
+                    //  this
                     //  command for out
                     pid = sane_launch(&commands[i + k],
                                       sane_pipes[((k - 1) * 2) + 0],
@@ -391,13 +405,13 @@ void sane_execute(int numCommands, command_t *commands)
 
                 // A builtin command was executed
                 if (pid == 0) {
-                    // Done executing commands, rewire stdin and stdout in main
-                    // process
+                    // Done executing command inbuilt command, rewire stdin and stdout in
+                    // main process
                     dup2(stdinCopy, 0);
                     dup2(stdoutCopy, 1);
-                    close(stdinCopy);
-                    close(stdoutCopy);
-
+                    //close(stdinCopy);
+                    //close(stdoutCopy);
+                    
                     // No need to wait for builtin command
                     --numCommandsToWaitFor;
                 }
@@ -409,7 +423,8 @@ void sane_execute(int numCommands, command_t *commands)
             sane_pipesReset();
 
             // Don't catch SIGCHLD (child terminated) signals during this
-            // critical section, otherwise the SIGCHLD signal handler will reap
+            // critical section, otherwise the SIGCHLD signal handler will
+            // reap
             // the process created and the below call to waitpid will fail
             sigset_t sigset;
             sigemptyset(&sigset);

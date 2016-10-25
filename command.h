@@ -42,6 +42,7 @@ typedef struct command_t {
 ///      b) -3, if the first token is a command separator.
 ///      c) -4, if the last command is followed by the command separator "|"
 ///      d) -5, the redirection operator is the last token in any given command.
+///      e) -6, ambiguous redirect (e.g. echo "Hello" > o.*)
 ///  3) Else, the number of commands found in the list of tokens.
 ///
 /// @todo Return error struct instead, with pos of token causing error.
@@ -52,3 +53,14 @@ typedef struct command_t {
 /// calling this function.
 ////////////////////////////////////////////////////////////////////////////////
 int separateCommands(char *token[], int numTokens, command_t command[]);
+
+////////////////////////////////////////////////////////////////////////////////
+/// Free all dynamically allocated memory associated with the given numCommands
+/// in the passed command array.
+///
+/// @pre There are atleast numCommands in the command array.
+///
+/// @param   command       command_t [], array of commands to free.
+/// @param   numCommands   int, number of commands in command array to free.
+////////////////////////////////////////////////////////////////////////////////
+void freeCommands(command_t command[], int numCommands);
