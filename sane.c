@@ -363,11 +363,13 @@ void sane_execute(int numCommands, command_t *commands)
             // this section ^ would be considered a sequence of piped
             // commands.
 
-            // Find out how many to execute
+            // Find out how many contiguous pipes to execute
             int numPipedCommands = 0;
             for (int j = i; j < numCommands; ++j) {
                 if (strcmp(commands[j].sep, SEP_PIPE) == 0) {
                     ++numPipedCommands;
+                } else {
+                    break;
                 }
             }
             // Also include last element in pipe sequence (which will not
