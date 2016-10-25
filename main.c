@@ -139,23 +139,28 @@ int main(int argc, char **argv)
                     } else if (numTokens == -2) {
                         fprintf(stderr, "sane: String not closed\n");
                     }
-                    
+
                     command_t command[MAX_NUM_COMMANDS];
                     // Reset command array
                     memset(command, 0, MAX_NUM_COMMANDS * sizeof(command_t));
                     int numCommands =
                         separateCommands(token, numTokens, command);
                     if (numCommands == -1) {
-                        fprintf(stderr, "sane: command array is too small for all commands.\n");
-                    }
-                    else if (numCommands == -2) {
-                        fprintf(stderr, "sane: at least two successive commands are separated by more than one command separator.\n");
+                        fprintf(stderr, "sane: command array is too small for "
+                                        "all commands.\n");
+                    } else if (numCommands == -2) {
+                        fprintf(stderr, "sane: at least two successive "
+                                        "commands are separated by more than "
+                                        "one command separator.\n");
                     } else if (numCommands == -3) {
-                        fprintf(stderr, "sane: first token is command separator.\n");
+                        fprintf(stderr,
+                                "sane: first token is command separator.\n");
                     } else if (numCommands == -4) {
-                        fprintf(stderr, "sane: last command followed by command separator '|'\n");
+                        fprintf(stderr, "sane: last command followed by "
+                                        "command separator '|'\n");
                     } else if (numCommands == -5) {
-                        fprintf(stderr, "sane: redirection operator last token in at least one command.\n");
+                        fprintf(stderr, "sane: redirection operator last token "
+                                        "in at least one command.\n");
                     }
 
                     if (numCommands > 0) {
