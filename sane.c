@@ -332,7 +332,8 @@ void sane_execute(int numCommands, command_t *commands)
             sigprocmask(SIG_SETMASK, &sigset, NULL);
 
             {
-                pid_t pid = sane_launch(&commands[i], STDIN_FILENO, STDOUT_FILENO);
+                pid_t pid =
+                    sane_launch(&commands[i], STDIN_FILENO, STDOUT_FILENO);
 
                 // Wait for child process to finish
                 int status;
@@ -355,6 +356,10 @@ void sane_execute(int numCommands, command_t *commands)
         }
         // Piped command
         else if (strcmp(commands[i].sep, SEP_PIPE) == 0) {
+            // Whether or not main process should wait on job to finish (false
+            // if separator of last command is SEP_CON)
+            int shouldWait = 1;
+
             //
             // Execute sequences of pipe commands at once for example, in:
             //
@@ -369,9 +374,13 @@ void sane_execute(int numCommands, command_t *commands)
                 if (strcmp(commands[j].sep, SEP_PIPE) == 0) {
                     ++numPipedCommands;
                 } else {
+                    if (strcmp(commands[j].sep, SEP_CON) == 0) {
+                        shouldWait = 0; // Don't wait for concurrent job
+                    }
                     break;
                 }
             }
+
             // Also include last element in pipe sequence (which will not
             // contain a pipe seperator [see 'less' in above example])
             ++numPipedCommands;
@@ -386,8 +395,8 @@ void sane_execute(int numCommands, command_t *commands)
                 if (k == 0) {
                     // First command in sequence:
                     //  - Use stdin for in, pipe for out (first write pipe)
-                    pid =
-                        sane_launch(&commands[i + k], STDIN_FILENO, sane_pipes[1]);
+                    pid = sane_launch(&commands[i + k], STDIN_FILENO,
+                                      sane_pipes[1]);
 
                 } else if (k == numPipedCommands - 1) {
                     // Last command in sequence:
@@ -407,13 +416,14 @@ void sane_execute(int numCommands, command_t *commands)
 
                 // A builtin command was executed
                 if (pid == 0) {
-                    // Done executing command inbuilt command, rewire stdin and stdout in
+                    // Done executing command inbuilt command, rewire stdin and
+                    // stdout in
                     // main process
                     dup2(stdinCopy, 0);
                     dup2(stdoutCopy, 1);
-                    //close(stdinCopy);
-                    //close(stdoutCopy);
-                    
+                    // close(stdinCopy);
+                    // close(stdoutCopy);
+
                     // No need to wait for builtin command
                     --numCommandsToWaitFor;
                 }
@@ -424,28 +434,30 @@ void sane_execute(int numCommands, command_t *commands)
             // Reset all pipes
             sane_pipesReset();
 
-            // Don't catch SIGCHLD (child terminated) signals during this
-            // critical section, otherwise the SIGCHLD signal handler will
-            // reap
-            // the process created and the below call to waitpid will fail
-            sigset_t sigset;
-            sigemptyset(&sigset);
-            sigaddset(&sigset, SIGCHLD);
+            if (shouldWait) {
+                // Don't catch SIGCHLD (child terminated) signals during this
+                // critical section, otherwise the SIGCHLD signal handler will
+                // reap
+                // the process created and the below call to waitpid will fail
+                sigset_t sigset;
+                sigemptyset(&sigset);
+                sigaddset(&sigset, SIGCHLD);
 
-            // Wait for each forked child to finish
-            sigprocmask(SIG_SETMASK, &sigset, NULL);
+                // Wait for each forked child to finish
+                sigprocmask(SIG_SETMASK, &sigset, NULL);
 
-            {
-                // TODO: wait on a list of pids
-                int status;
-                for (int k = 0; k < numCommandsToWaitFor; ++k) {
-                    wait(&status);
+                {
+                    // TODO: wait on a list of pids
+                    int status;
+                    for (int k = 0; k < numCommandsToWaitFor; ++k) {
+                        wait(&status);
+                    }
                 }
-            }
 
-            // Allow SIGCHLD signals to be processed again, signals received
-            // during critical section will now be processed.
-            sigprocmask(SIG_UNBLOCK, &sigset, NULL);
+                // Allow SIGCHLD signals to be processed again, signals received
+                // during critical section will now be processed.
+                sigprocmask(SIG_UNBLOCK, &sigset, NULL);
+            }
 
             i += numPipedCommands;
         }
