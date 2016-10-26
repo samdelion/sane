@@ -4,6 +4,7 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <assert.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
@@ -16,17 +17,55 @@
 #include "command.h"
 #include "sane.h"
 
+static char *sane_promptString = NULL;
+
+const char *sane_getPrompt()
+{
+    return sane_promptString;
+}
+
+int sane_init()
+{
+    int result = 0;
+
+    assert(sane_promptString == NULL &&
+           "sane_promptString was set before sane_init()");
+
+    // Set default prompt
+    const char *defaultPrompt = "%";
+
+    size_t promptLen = strlen(defaultPrompt) + 1;
+    sane_promptString = (char *)malloc(promptLen);
+
+    // Ensure memory allocation did not fail
+    if (sane_promptString != NULL) {
+        memset(sane_promptString, '\0', promptLen);
+        strcpy(sane_promptString, defaultPrompt);
+    } else {
+        result = 1;
+    }
+
+    return result;
+}
+
+void sane_shutdown()
+{
+    if (sane_promptString != NULL) {
+        free(sane_promptString);
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /// Shell built-in function declarations.
 ////////////////////////////////////////////////////////////////////////////////
 
-/* int sane_cd(char **argv); */
-int sane_exit(char **argv);
-int sane_help(char **argv);
-/* int sane_prompt(char **argv); */
-/* int sane_pwd(char **argv); */
+/* int sane_cd(int argc, char **argv); */
+int sane_exit(int argc, char **argv);
+int sane_help(int argc, char **argv);
+int sane_prompt(int argc, char **argv);
+/* int sane_pwd(int argc, char **argv); */
 
-int sane_help(char **argv)
+int sane_help(int argc, char **argv)
 {
     printf("     ___           ___           ___           ___     ");
     printf("\n    /\\  \\         /\\  \\         /\\__\\         /\\  \\    ");
@@ -49,9 +88,35 @@ int sane_help(char **argv)
     return EXIT_SUCCESS;
 }
 
-int sane_exit(char **argv)
+int sane_exit(int argc, char **argv)
 {
     kill(getpid(), SIGUSR1);
+
+    return EXIT_SUCCESS;
+}
+
+int sane_prompt(int argc, char **argv)
+{
+    // Did we receive the correct number of arguments?
+    if (argc == 2) {
+        // Free previous prompt
+        free(sane_promptString);
+
+        // Set new prompt
+        size_t promptLen = strlen(argv[1]) + 1;
+        sane_promptString = (char *)malloc(promptLen);
+
+        // Ensure memory allocation did not fail
+        if (sane_promptString != NULL) {
+            memset(sane_promptString, '\0', promptLen);
+            strcpy(sane_promptString, argv[1]);
+        } else {
+            return EXIT_FAILURE;
+        }
+    } else {
+        fprintf(stderr, "usage: prompt [string]\n");
+        return EXIT_FAILURE;
+    }
 
     return EXIT_SUCCESS;
 }
@@ -59,11 +124,12 @@ int sane_exit(char **argv)
 /* // Strings used to call built-in functions and function pointer */
 /* // (note order matches in both arrays) */
 /* char *sane_builtinStr[] = {"cd", "exit", "help", "prompt", "pwd"}; */
-char *sane_builtinStr[] = {"help", "exit"};
+char *sane_builtinStr[] = {"help", "exit", "prompt"};
 
-/* int (*sane_builtinFunc[])(char **) = {&sane_cd, &sane_exit, &sane_help, */
-/*                                       &sane_prompt, &sane_pwd}; */
-int (*sane_builtinFuncs[])(char **) = {&sane_help, &sane_exit};
+/* int (*sane_builtinFunc[])(int, char **) = {&sane_cd, &sane_exit, &sane_help,
+ * &sane_prompt, &sane_pwd}; */
+int (*sane_builtinFuncs[])(int, char **) = {&sane_help, &sane_exit,
+                                            &sane_prompt};
 
 // Return the number of shell built-in functions.
 int sane_numBuiltins()
@@ -233,8 +299,13 @@ pid_t sane_launch(command_t *command, int fdIn, int fdOut)
                 close(out);
             }
 
+            int argc = 0;
+            for (int i = 0; command->argv[i] != NULL; ++i) {
+                ++argc;
+            }
+
             // Execute command
-            (*sane_builtinFuncs[builtInIt])(command->argv);
+            (*sane_builtinFuncs[builtInIt])(argc, command->argv);
         }
     }
 
@@ -292,11 +363,13 @@ void sane_execute(int numCommands, command_t *commands)
             // this section ^ would be considered a sequence of piped
             // commands.
 
-            // Find out how many to execute
+            // Find out how many contiguous pipes to execute
             int numPipedCommands = 0;
             for (int j = i; j < numCommands; ++j) {
                 if (strcmp(commands[j].sep, SEP_PIPE) == 0) {
                     ++numPipedCommands;
+                } else {
+                    break;
                 }
             }
             // Also include last element in pipe sequence (which will not

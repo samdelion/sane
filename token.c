@@ -1,6 +1,6 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
-#include <ctype.h>
 
 #include "token.h"
 
@@ -9,7 +9,7 @@
 /// and expands the escape character and it's following character into the
 /// required character, shortening the string as necessary.
 ///
-/// For example, will expand "\\" to "\" and "\'" to "'"
+/// For example, will expand \" to " and \' to '
 ///
 /// @param   str   char *, pointer to NULL-terminated string, currently pointing
 /// at escape character ('\').
@@ -18,10 +18,7 @@ void expandEscapeCharacter(char *str)
 {
     if (*str && *(str + 1)) {
         if (*str == '\\') {
-            if (*(str + 1) == '\\') {
-                // First character already '\', which we want to expand to - so
-                // do nothing
-            } else if (*(str + 1) == '"' || *(str + 1) == '\'') {
+            if (*(str + 1) == '"' || *(str + 1) == '\'') {
                 *str = *(str + 1);
             } else { // Handle more escape expansions
                 // Nothing to expand
