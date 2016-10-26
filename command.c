@@ -113,12 +113,12 @@ int searchRedirection(char *token[], command_t *cp)
     return 0;
 }
 
-/**
- * Dynamically allocates memory for the cp->argv property.
- *
- * @param   token   char *[], array of tokens.
- * @param   cp      command_t *, pointer to command_t structure to fill.
- */
+////////////////////////////////////////////////////////////////////////////////
+/// Dynamically allocates memory for the cp->argv property.
+///
+/// @param   token   char *[], array of tokens.
+/// @param   cp      command_t *, pointer to command_t structure to fill.
+////////////////////////////////////////////////////////////////////////////////
 void buildCommandArgumentArray(char *token[], command_t *cp)
 {
     int ii = cp->first;
@@ -151,7 +151,8 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
             for (int j = 0; j < globResult.gl_pathc; ++j) {
                 size_t len = strlen(globResult.gl_pathv[j]) +
                              1; // +1 for NULL terminator
-                // Look thru array and take decrement length if find '\' (escape
+                // Look thru array and take decrement length if find '\'
+                // (escape
                 // character)
                 for (int k = 0; k < strlen(globResult.gl_pathv[j]); ++k) {
                     if (globResult.gl_pathv[j][k] == '\\') {
