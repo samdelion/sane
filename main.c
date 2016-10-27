@@ -17,6 +17,10 @@
 
 int sane_shouldQuit = 0;
 
+void sane_handleSigkill(int signo)
+{
+}
+
 // SIGUSR1 is sent when "exit" inbuilt command is used
 void sane_handleSiguser1(int signo)
 {
@@ -43,12 +47,6 @@ void sane_handleSigchld(int signo)
 
 void setupChildSignalHandler()
 {
-    // Setup sigchld handler
-    sigset_t s;
-    if (sigemptyset(&s) == 0) {
-        sigaddset(&s, SIGCHLD);
-    }
-
     struct sigaction act;
     act.sa_flags = 0;
     act.sa_handler = sane_handleSigchld;
@@ -65,21 +63,41 @@ void setupChildSignalHandler()
 
 void setupUser1SignalHandler()
 {
-    // Setup sigchld handler
-    sigset_t s;
-    if (sigemptyset(&s) == 0) {
-        sigaddset(&s, SIGUSR1);
-    }
-
     struct sigaction act;
     act.sa_flags = 0;
     act.sa_handler = sane_handleSiguser1;
-    // Initialize mask to contain no signals - no signals are blocked during
+    // Initialize mask to contain all signals - all signals are blocked during
     // the execution of the handler
-    sigemptyset(&(act.sa_mask));
+    sigfillset(&(act.sa_mask));
 
     // Assign handler structure to SIGCHLD
     if (sigaction(SIGUSR1, &act, NULL) != 0) {
+        perror("sane: sigaction");
+        exit(1);
+    }
+}
+
+void setupKillSignalHandler()
+{
+    struct sigaction act;
+    act.sa_flags = 0;
+    act.sa_handler = sane_handleSigkill;
+    // Initialize mask to contain all signals - all signals are blocked during
+    // the execution of the handler
+    sigfillset(&(act.sa_mask));
+
+    // Assign handler structure to SIGCHLD
+    if (sigaction(SIGINT, &act, NULL) != 0) {
+        perror("sane: sigaction");
+        exit(1);
+    }
+    // Assign handler structure to SIGCHLD
+    if (sigaction(SIGQUIT, &act, NULL) != 0) {
+        perror("sane: sigaction");
+        exit(1);
+    }
+    // Assign handler structure to SIGCHLD
+    if (sigaction(SIGTSTP, &act, NULL) != 0) {
         perror("sane: sigaction");
         exit(1);
     }
@@ -89,95 +107,77 @@ void setupSignalHandlers()
 {
     setupChildSignalHandler();
     setupUser1SignalHandler();
+    setupKillSignalHandler();
+    // TODO setup_handler(int sig, fnptr handler)
 }
 
 int main(int argc, char **argv)
 {
     // Initialize shell, check if ok
     if (sane_init() == 0) {
-        // Don't catch SIGQUIT (Ctrl+\), SIGINT (Ctrl+c), SIGTSTP (Ctrl+z)
-        // signals
-        // during this critical section
-        sigset_t sigset;
-        sigemptyset(&sigset);
-        sigaddset(&sigset, SIGINT);
-        sigaddset(&sigset, SIGQUIT);
-        sigaddset(&sigset, SIGTSTP);
+        char *inputLine = (char *)malloc(INPUT_LINE_SIZE * sizeof(char));
+        char *inputPtr = NULL;
 
-        sigprocmask(SIG_SETMASK, &sigset, NULL);
+        setupSignalHandlers();
 
-        {
-            char *inputLine = (char *)malloc(INPUT_LINE_SIZE * sizeof(char));
-            char *inputPtr = NULL;
+        while (!(sane_shouldQuit)) {
+            memset(inputLine, 0, INPUT_LINE_SIZE);
+            printf("%s ", sane_getPrompt());
 
-            setupSignalHandlers();
+            // Get input buffer from stdin, if getting input fails due to
+            // interruption from signal handler, try again.
+            do {
+                inputPtr = fgets(inputLine, INPUT_LINE_SIZE, stdin);
+            } while (inputPtr == NULL && errno == EINTR);
 
-            while (!(sane_shouldQuit)) {
-                memset(inputLine, 0, INPUT_LINE_SIZE);
-                printf("%s ", sane_getPrompt());
+            // TODO: Remove. For now, I would like to know cases where this
+            // is true
+            assert(inputPtr != NULL && "Couldn't get input!\n");
 
-                // Get input buffer from stdin, if getting input fails due to
-                // interruption from signal handler, try again.
-                do {
-                    inputPtr = fgets(inputLine, INPUT_LINE_SIZE, stdin);
-                } while (inputPtr == NULL && errno == EINTR);
+            if (inputPtr != NULL) {
+                // Remove newline at end of input buffer
+                inputLine[strcspn(inputLine, "\n")] = 0;
 
-                // TODO: Remove. For now, I would like to know cases where this
-                // is true
-                assert(inputPtr != NULL && "Couldn't get input!\n");
+                char *token[MAX_NUM_TOKENS];
+                int numTokens = tokenise(inputLine, token);
+                if (numTokens == -1) {
+                    fprintf(stderr, "sane: Number of tokens provided exceeds "
+                                    "MAX_NUM_TOKENS\n");
+                } else if (numTokens == -2) {
+                    fprintf(stderr, "sane: String not closed\n");
+                }
 
-                if (inputPtr != NULL) {
-                    // Remove newline at end of input buffer
-                    inputLine[strcspn(inputLine, "\n")] = 0;
+                command_t command[MAX_NUM_COMMANDS];
+                // Reset command array
+                memset(command, 0, MAX_NUM_COMMANDS * sizeof(command_t));
+                int numCommands = separateCommands(token, numTokens, command);
+                if (numCommands == -1) {
+                    fprintf(stderr, "sane: command array is too small for "
+                                    "all commands.\n");
+                } else if (numCommands == -2) {
+                    fprintf(stderr, "sane: at least two successive "
+                                    "commands are separated by more than "
+                                    "one command separator.\n");
+                } else if (numCommands == -3) {
+                    fprintf(stderr,
+                            "sane: first token is command separator.\n");
+                } else if (numCommands == -4) {
+                    fprintf(stderr, "sane: last command followed by "
+                                    "command separator '|'\n");
+                } else if (numCommands == -5) {
+                    fprintf(stderr, "sane: redirection operator last token "
+                                    "in at least one command.\n");
+                }
 
-                    char *token[MAX_NUM_TOKENS];
-                    int numTokens = tokenise(inputLine, token);
-                    if (numTokens == -1) {
-                        fprintf(stderr,
-                                "sane: Number of tokens provided exceeds "
-                                "MAX_NUM_TOKENS\n");
-                    } else if (numTokens == -2) {
-                        fprintf(stderr, "sane: String not closed\n");
-                    }
+                if (numCommands > 0) {
+                    sane_execute(numCommands, command);
 
-                    command_t command[MAX_NUM_COMMANDS];
-                    // Reset command array
-                    memset(command, 0, MAX_NUM_COMMANDS * sizeof(command_t));
-                    int numCommands =
-                        separateCommands(token, numTokens, command);
-                    if (numCommands == -1) {
-                        fprintf(stderr, "sane: command array is too small for "
-                                        "all commands.\n");
-                    } else if (numCommands == -2) {
-                        fprintf(stderr, "sane: at least two successive "
-                                        "commands are separated by more than "
-                                        "one command separator.\n");
-                    } else if (numCommands == -3) {
-                        fprintf(stderr,
-                                "sane: first token is command separator.\n");
-                    } else if (numCommands == -4) {
-                        fprintf(stderr, "sane: last command followed by "
-                                        "command separator '|'\n");
-                    } else if (numCommands == -5) {
-                        fprintf(stderr, "sane: redirection operator last token "
-                                        "in at least one command.\n");
-                    }
-
-                    if (numCommands > 0) {
-                        sane_execute(numCommands, command);
-
-                        freeCommands(command, numCommands);
-                    }
+                    freeCommands(command, numCommands);
                 }
             }
-
-            free(inputLine);
         }
 
-        // Allow SIGINT, SIGQUIT, SIGTSTP signals to be processed again, signals
-        // received during critical section will now be processed.
-        sigprocmask(SIG_UNBLOCK, &sigset, NULL);
-
+        free(inputLine);
         // Shutdown shell
         sane_shutdown();
     } else {
