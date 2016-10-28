@@ -52,7 +52,7 @@ int tokenise(char *inputLine, char *token[])
                 char quoteType = (*it == '"') ? '"' : '\'';
 
                 // Assign start address of string (after quote) to array
-                //token[numTokens] = ++it;
+                // token[numTokens] = ++it;
                 token[numTokens] = it++;
                 ++numTokens;
 
@@ -72,7 +72,7 @@ int tokenise(char *inputLine, char *token[])
                 if (!(*it)) {
                     return -2;
                 }
-                
+
                 ++it;
             } else {
                 // If first is escape character, expand it before setting start
@@ -87,11 +87,31 @@ int tokenise(char *inputLine, char *token[])
                 ++numTokens;
 
                 // Skip characters we are interested in ('a', 'b', '!', etc.)
-                // (not
-                // including space, tab, newline etc.)
+                // (not including space, tab, newline etc.)
                 while (*it && ((*it > 32) && (*it <= 126))) {
                     if (*it == '\\') {
                         /* expandEscapeCharacter(it); */
+                        ++it;
+                    } else if (*it == '"' | *it == '\'') {
+                        // Ensure that string is closed
+                        char quoteType = *it;
+                        char *itStr = ++it;
+                        int stringClosed = 0;
+                        while (*itStr) {
+                            // Skip over escaped characters
+                            if (*itStr == '\\') {
+                                ++itStr;
+                            } else if (*itStr == quoteType) {
+                                stringClosed = 1;
+                                break;
+                            }
+                            ++itStr;
+                        }
+
+                        // Return error if string not closed
+                        if (!stringClosed) {
+                            return -2;
+                        }
                     }
                     ++it;
                 }
