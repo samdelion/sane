@@ -144,35 +144,38 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
         char *it = token[i];
         if (*it == '"' || *it == '\'') {
             char quoteType = *it;
-
-            // Skip over quote
-            char *startIt = ++it;
+            char *startIt = it;
 
             size_t len = 0;
-            for (; *it != '\0' && *it != quoteType; ++it) {
-                if (*it == '\\') {
-                    ++it;
+            for (; *it != '\0'; ++it) {
+                // Make sure to ignore escape characters and inner quotes of
+                // quoteType kind
+                if (*it == '\\' || *it == quoteType) {
+                    if (*(it + 1)) {
+                        ++it;
+                    } else {
+                        // Nothing after ignored character, don't increase len
+                        break;
+                    }
                 }
                 ++len;
             }
             ++len; // For NULL terminator
 
-            /* size_t len = strlen(it) + 1; // +1 for NULL terminator */
-            /* for (int k = 0; k < strlen(token[i]); ++k) { */
-            /*     if (token[i][k] == '\\') { */
-            /*         --len; */
-            /*     } */
-            /* } */
             char *tmp = (char *)malloc(sizeof(char) * len);
             memset(tmp, '\0', len);
 
             int k = 0;
-            for (it = startIt; *it != '\0' && *it != quoteType; ++it) {
-                // Handle escape characters
-                if (*it == '\\') {
-                    // Make sure to ignore escape character
+            for (it = startIt; *it != '\0'; ++it) {
+                // Make sure to ignore escape characters and inner quotes of "
+                // kind
+                if (*it == '\\' || *it == quoteType) {
                     tmp[k] = *(it + 1);
-                    ++it;
+
+                    // Don't increment iterator again if at end of token
+                    if (*(it + 1)) {
+                        ++it;
+                    }
                 } else {
                     tmp[k] = *it;
                 }
@@ -181,6 +184,52 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
 
             cp->argv[offset] = tmp;
             ++offset;
+            /* } else if ((*it == '\\' && *(it + 1) == '"') || */
+            /*            (*it == '\\' && *(it + 1) == '\'')) { */
+            /*     char *startIt = it; */
+
+            /*     size_t len = 0; */
+            /*     for (; *it != '\0'; ++it) { */
+            /*         // Make sure to ignore escape characters and inner quotes
+             * of */
+            /*         // both kinds */
+            /*         if (*it == '\\' || *it == '"' || *it == '\'') { */
+            /*             if (*(it + 1)) { */
+            /*                 ++it; */
+            /*             } else { */
+            /*                 // Nothing after ignored character, don't
+             * increase len */
+            /*                 break; */
+            /*             } */
+            /*         } */
+            /*         ++len; */
+            /*     } */
+            /*     ++len; // For NULL terminator */
+
+            /*     char *tmp = (char *)malloc(sizeof(char) * len); */
+            /*     memset(tmp, '\0', len); */
+
+            /*     int k = 0; */
+            /*     for (it = startIt; *it != '\0'; ++it) { */
+            /*         // Make sure to ignore escape characters and inner quotes
+             * of */
+            /*         // both kinds */
+            /*         if (*it == '\\' || *it == '"' || *it == '\'') { */
+            /*             tmp[k] = *(it + 1); */
+
+            /*             // Don't increment iterator again if at end of token
+             */
+            /*             if (*(it + 1)) { */
+            /*                 ++it; */
+            /*             } */
+            /*         } else { */
+            /*             tmp[k] = *it; */
+            /*         } */
+            /*         ++k; */
+            /*     } */
+
+            /*     cp->argv[offset] = tmp; */
+            /*     ++offset; */
         } else {
             glob_t globResult;
             glob(token[i], GLOB_TILDE, NULL, &globResult);
@@ -191,52 +240,79 @@ void buildCommandArgumentArray(char *token[], command_t *cp)
 
                 cp->argv = realloc(cp->argv, sizeof(char *) * n);
                 for (int j = 0; j < globResult.gl_pathc; ++j) {
-                    size_t len = strlen(globResult.gl_pathv[j]) +
-                                 1; // +1 for NULL terminator
-                    // Look thru array and take decrement length if find '\'
-                    // (escape
-                    // character)
+                    /* size_t len = strlen(globResult.gl_pathv[j]) + */
+                    /*              1; // +1 for NULL terminator */
+                    size_t len = 0;
                     for (int k = 0; k < strlen(globResult.gl_pathv[j]); ++k) {
-                        if (globResult.gl_pathv[j][k] == '\\') {
-                            --len;
+                        if (globResult.gl_pathv[j][k] == '\\' ||
+                            globResult.gl_pathv[j][k] == '"' ||
+                            globResult.gl_pathv[j][k] == '\'') {
+                            if (globResult.gl_pathv[j][k + 1]) {
+                                ++k;
+                            } else {
+                                // Nothing after ignored character, don't
+                                // increase length
+                                break;
+                            }
                         }
+                        ++len;
                     }
+                    ++len; // +1 for NULL-terminator
+
                     char *tmp = (char *)malloc(sizeof(char) * len);
                     memset(tmp, '\0', len);
 
                     int k = 0;
                     for (char *it = globResult.gl_pathv[j]; *it != '\0'; ++it) {
                         // Handle escape characters
-                        if (*it == '\\') {
+                        if (*it == '\\' || *it == '"' || *it == '\'') {
                             // Make sure to ignore escape character
                             tmp[k] = *(it + 1);
-                            ++it;
+
+                            if (*(it + 1)) {
+                                ++it;
+                            }
                         } else {
                             tmp[k] = *it;
                         }
                         ++k;
                     }
-                    cp->argv[j + offset] = tmp;
+
+                    cp->argv[offset + j] = tmp;
                 }
 
                 offset += globResult.gl_pathc;
             } else {
-                size_t len = strlen(token[i]) + 1; // +1 for NULL terminator
+                size_t len = 0;
                 for (int k = 0; k < strlen(token[i]); ++k) {
-                    if (token[i][k] == '\\') {
-                        --len;
+                    if (token[i][k] == '\\' || token[i][k] == '"' ||
+                        token[i][k] == '\'') {
+                        if (token[i][k + 1]) {
+                            ++k;
+                        } else {
+                            // Nothing after ignored character, dont increase
+                            // length
+                            break;
+                        }
                     }
+                    ++len;
                 }
+                ++len; // +1 for NULL-terminator
+
                 char *tmp = (char *)malloc(sizeof(char) * len);
                 memset(tmp, '\0', len);
 
                 int k = 0;
                 for (char *it = token[i]; *it != '\0'; ++it) {
                     // Handle escape characters
-                    if (*it == '\\') {
+                    if (*it == '\\' || *it == '"' || *it == '\'') {
                         // Make sure to ignore escape character
                         tmp[k] = *(it + 1);
-                        ++it;
+
+                        // Don't increment iterator again if at end of token
+                        if (*(it + 1)) {
+                            ++it;
+                        }
                     } else {
                         tmp[k] = *it;
                     }
