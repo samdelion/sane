@@ -114,6 +114,8 @@ startTestSuite "Strings"
 # performTest "echo 'Hell\"o\"p\"hole\" Wo\"r\"ld'" "Hell\"o\"p\"hole\" Wo\"r\"ld" $prompt
 # performTest "echo \\'Hello'o'p'hole' Wo'r'ld\\'" "'Helloophole World'" $prompt
 # performTest "echo \\'Hello\"o\"p\"hole\" Wo\"r\"ld\\'" "'Helloophole World'" $prompt
+# * Check if string not closed works correctly
+# performTest "echo \"Hello" "sane: string not closed" $prompt
 
 endTestSuite
 
@@ -131,18 +133,21 @@ endTestSuite
 
 ### Pipes ###
 
+startTestSuite "Pipes"
+endTestSuite
+
 ### Redirection ###
 
 ### Builtins
 startTestSuite "Builtins"
 
-performTest "pwd" "*/test" $prompt
-performTest "pwd | cat | grep \"test\"" "*/test" $prompt
-performTest "pwd | grep \"test\"" "*/test" $prompt
-performTest "cd test ; pwd" "cd: No such file or directory" $prompt
-# * Bash ignores other arguments to cd - expect no error
-performTest "cd test folderThatDoesNotExist ; pwd" "*/test" $prompt
-performTest "cd test folderThatDoesNotExist1 folderThatDoesNotExist2 ; pwd" "*/test" $prompt
+# performTest "pwd" "*/test" $prompt
+# performTest "pwd | cat | grep \"test\"" "*/test" $prompt
+# performTest "pwd | grep \"test\"" "*/test" $prompt
+# performTest "cd test ; pwd" "cd: No such file or directory" $prompt
+# # * Bash ignores other arguments to cd - expect no error
+# performTest "cd test folderThatDoesNotExist ; pwd" "*/test" $prompt
+# performTest "cd test folderThatDoesNotExist1 folderThatDoesNotExist2 ; pwd" "*/test" $prompt
 # performTest "cd ; pwd" "$env(HOME)" $prompt
 
 endTestSuite
@@ -150,16 +155,16 @@ endTestSuite
 ### Wildcards ###
 startTestSuite "Wildcards"
 
-performTest "ls folder2/foo?.c" "folder2/foo1.c\tfolder2/foo2.c" $prompt
-performTest "ls folder2/foo*.c" "folder2/foo1.c\tfolder2/foo2.c\tfolder2/foo33.c" $prompt
-performTest "ls folder2/foo*" "folder2/foo1.c\tfolder2/foo2.c\tfolder2/foo33.c\tfolder2/foo4" $prompt
-performTest "ls folder2/abc.?" "folder2/abc.c\tfolder2/abc.x" $prompt
-performTest "ls folder2/abc*.?" "folder2/abc.c\tfolder2/abc.x\tfolder2/abc33.c" $prompt
-performTest "ls folder2/*" "folder2/abc.c[ ]*folder2/abc33.c[ ]*folder2/afoo[ ]*folder2/foo2.c[ ]*folder2/foo4[ ]*folder2/abc.x[ ]*folder2/abc33.cc[ ]*folder2/foo1.c[ ]*folder2/foo33.c[ ]*folder2/hfoo" $prompt
-# * Make sure wildcard doesn't expand when inside string
-performTest "ls \"folder2/*\"" "ls: folder2/*: No such file or directory" $prompt
-performTest "cat folder3/names.txt | grep \"Hello\"" "Hello World" $prompt 
-performTest "cat folder3/names.txt | grep 'Hello'" "Hello World" $prompt 
+# performTest "ls folder2/foo?.c" "folder2/foo1.c\tfolder2/foo2.c" $prompt
+# performTest "ls folder2/foo*.c" "folder2/foo1.c\tfolder2/foo2.c\tfolder2/foo33.c" $prompt
+# performTest "ls folder2/foo*" "folder2/foo1.c\tfolder2/foo2.c\tfolder2/foo33.c\tfolder2/foo4" $prompt
+# performTest "ls folder2/abc.?" "folder2/abc.c\tfolder2/abc.x" $prompt
+# performTest "ls folder2/abc*.?" "folder2/abc.c\tfolder2/abc.x\tfolder2/abc33.c" $prompt
+# performTest "ls folder2/*" "folder2/abc.c[ ]*folder2/abc33.c[ ]*folder2/afoo[ ]*folder2/foo2.c[ ]*folder2/foo4[ ]*folder2/abc.x[ ]*folder2/abc33.cc[ ]*folder2/foo1.c[ ]*folder2/foo33.c[ ]*folder2/hfoo" $prompt
+# # * Make sure wildcard doesn't expand when inside string
+# performTest "ls \"folder2/*\"" "ls: folder2/*: No such file or directory" $prompt
+# performTest "cat folder3/names.txt | grep \"Hello\"" "Hello World" $prompt 
+# performTest "cat folder3/names.txt | grep 'Hello'" "Hello World" $prompt 
 
 endTestSuite
 
@@ -178,3 +183,18 @@ endTestSuite
 # performTest "" "" $prompt
 # performTest "" "" $prompt
 # performTest "" "" $prompt
+
+### Miscellaneous ###
+startTestSuite "Misc"
+
+performTest "|" "sane: first token is command separator" $prompt
+performTest "&" "sane: first token is command separator" $prompt
+performTest ";" "sane: first token is command separator" $prompt
+performTest "echo Hello |" "sane: last command followed by command separator '|'" $prompt
+performTest "echo Hello | | cat" "sane: at least two successive commands are separated by more than one command separator" $prompt
+performTest "echo Hello & & cat" "sane: at least two successive commands are separated by more than one command separator" $prompt
+performTest "echo Hello ; ; cat" "sane: at least two successive commands are separated by more than one command separator" $prompt
+
+# performTest "" "" $prompt
+
+endTestSuite

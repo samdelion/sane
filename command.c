@@ -403,7 +403,6 @@ int separateCommands(char *token[], int numTokens, command_t command[])
 
     // Check the last token of the last command
     if (strcmp(token[last], SEP_PIPE) == 0) { // last token is pipe separator
-        fprintf(stderr, "sane: syntax error, last token should not be pipe\n");
         return -4;
     }
 
