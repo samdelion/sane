@@ -1,5 +1,5 @@
 #!/usr/bin/expect -f
-set timeout 1 
+set timeout 2 
 log_user 0
 set numTests 0
 set currTestSuiteName "None"
@@ -20,7 +20,7 @@ proc performTest { testInput expectedOutput prompt } {
         timeout { send_user "$extraNewLine\[     FAIL ] $testInput\n"; exit 1; }
         $prompt
     }
-    send_user "$extraNewLine\[       OK ] $testInput\n"
+    send_user "$extraNewLine\[       OK ] $expectedOutput\n"
 
     # Increment number of successful tests
     set numTests [expr $numTests + 1]
@@ -28,6 +28,12 @@ proc performTest { testInput expectedOutput prompt } {
 
 proc startTestSuite { testSuiteName } {
     global currTestSuiteName
+    global numTests
+
+    if {$numTests != 0} {
+        send_user "ERROR: Test suite: \"$currTestSuiteName\" wasn't ended! Call 'endTestSuite'\n"
+        exit 1;
+    }
 
     send_user "\[\-\-\-\-\-\-\-\-\-\-\] Test suite: $testSuiteName\n"
 
@@ -38,7 +44,7 @@ proc endTestSuite { } {
     global numTests
     global currTestSuiteName
 
-    send_user "\[\-\-\-\-\-\-\-\-\-\-\] $numTests tests completed successfully from test suite: $currTestSuiteName\n"
+    send_user "\[\-\-\-\-\-\-\-\-\-\-\] $numTests tests completed successfully from test suite: $currTestSuiteName\n\n"
 
     # Reset number of tests
     set numTests 0
@@ -90,14 +96,36 @@ performTest "echo Hello\\" "Hello" $prompt
 performTest "echo Hello\\ World\\" "Hello World" $prompt
 performTest "echo \"Hello\"o\"p\"" "Helloop" $prompt
 performTest "echo \"Hello'o'p\"" "Hello'o'p" $prompt
-# performTest "" "" $prompt
-# performTest "" "" $prompt
-# performTest "" "" $prompt
-# performTest "" "" $prompt
-# performTest "" "" $prompt
-# performTest "" "" $prompt
-# performTest "" "" $prompt
-# performTest "" "" $prompt
-# performTest "" "" $prompt
+performTest "echo \\\"Hello\"o\"p\\\"" "\"Helloop\"" $prompt
+performTest "echo \\\"Hello'o'p\\\"" "\"Helloop\"" $prompt
+performTest "echo \"Hello\\\"o\\\"p\"" "Hello\"o\"p" $prompt
+performTest "echo \\\"Hello\\\"o\\\"p\\\"" "\"Hello\"o\"p\"" $prompt
+performTest "echo 'Hell'o'p'" "Hellop" $prompt
+performTest "echo 'Hell\"o\"p'" "Hell\"o\"p" $prompt
+performTest "echo \\'Hello'o'p\\'" "'Helloop'" $prompt
+performTest "echo \\'Hello\"o\"p\\'" "'Helloop'" $prompt
+performTest "echo \"Hello\"o\"p\"hole\" Wo\"r\"ld\"" "Helloophole World" $prompt
+performTest "echo \"Hello'o'p'hole' Wo'r'ld\"" "Hello'o'p'hole' Wo'r'ld" $prompt
+performTest "echo \\\"Hello\"o\"p\"hole\" Wo\"r\"ld\\\"" "\"Helloophole World\"" $prompt
+performTest "echo \\\"Hello'o'p'hole' Wo'r'ld\\\"" "\"Helloophole World\"" $prompt
+performTest "echo \"Hello\\\"o\\\"p\\\"hole\\\" Wo\"r\"ld\"" "Hello\"o\"p\"hole\" World" $prompt
+performTest "echo \\\"Hello\\\"o\\\"p\\\"hole\\\" Wo\"r\"ld\\\"" "\"Hello\"o\"p\"hole\" World\"" $prompt
+performTest "echo 'Hell'o'p'hole' Wo'r'ld'" "Hellophole World" $prompt
+performTest "echo 'Hell\"o\"p\"hole\" Wo\"r\"ld'" "Hell\"o\"p\"hole\" Wo\"r\"ld" $prompt
+performTest "echo \\'Hello'o'p'hole' Wo'r'ld\\'" "'Helloophole World'" $prompt
+performTest "echo \\'Hello\"o\"p\"hole\" Wo\"r\"ld\\'" "'Helloophole World'" $prompt
 
 endTestSuite
+
+### Prompt ###
+startTestSuite "Prompt"
+performTest "prompt \>" "" ">"
+performTest "prompt %" "" "%"
+endTestSuite
+
+# performTest "" "" $prompt
+# performTest "" "" $prompt
+# performTest "" "" $prompt
+# performTest "" "" $prompt
+# performTest "" "" $prompt
+# performTest "" "" $prompt
