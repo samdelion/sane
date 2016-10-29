@@ -64,6 +64,7 @@ int sane_exit(int argc, char **argv);
 int sane_help(int argc, char **argv);
 int sane_prompt(int argc, char **argv);
 int sane_pwd(int argc, char **argv);
+int sane_cd(int argc, char **argv);
 
 int sane_help(int argc, char **argv)
 {
@@ -140,12 +141,30 @@ int sane_pwd(int argc, char **argv)
     return EXIT_SUCCESS;
 }
 
+int sane_cd(int argc, char **argv)
+{
+    if (argc == 1) {
+        // No arguments given to cd, go home
+        if (chdir(getenv("HOME")) == -1) {
+            perror("cd");
+            return EXIT_FAILURE;
+        }
+    } else if (argc > 1) {
+        if (chdir(argv[1]) == -1) {
+            perror("cd");
+            return EXIT_FAILURE;
+        }
+    }
+
+    return EXIT_SUCCESS;
+}
+
 // Strings used to call built-in functions and function pointer
 // (note order matches in both arrays)
-char *sane_builtinStr[] = {"help", "exit", "prompt", "pwd"};
+char *sane_builtinStr[] = {"help", "exit", "prompt", "pwd", "cd"};
 
 int (*sane_builtinFuncs[])(int, char **) = {&sane_help, &sane_exit,
-                                            &sane_prompt, &sane_pwd};
+                                            &sane_prompt, &sane_pwd, &sane_cd};
 
 // Return the number of shell built-in functions.
 int sane_numBuiltins()
