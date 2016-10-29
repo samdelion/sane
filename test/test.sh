@@ -83,54 +83,75 @@ set prompt "%"
 ### Strings ###
 startTestSuite "Strings"
 
-performTest "echo Wo'r'ld" "World" $prompt
-performTest "echo Wo\"r\"ld" "World" $prompt
-performTest "echo \\\"Hello"       "\"Hello"                 $prompt
-performTest "echo \"Hell'o\""      "Hell'o"                  $prompt
-performTest "echo \\\"Hell\"o\\\"" "sane: string not closed" $prompt
-performTest "echo Hell'o"          "sane: string not closed" $prompt
-performTest "echo \\\"Hell'o\\\""  "sane: string not closed" $prompt
-performTest "echo \"Hell\"o\""     "sane: string not closed" $prompt
-performTest "echo Hello\\ World"   "Hello World"             $prompt
-performTest "echo Hello\\" "Hello" $prompt
-performTest "echo Hello\\ World\\" "Hello World" $prompt
-performTest "echo \"Hello\"o\"p\"" "Helloop" $prompt
-performTest "echo \"Hello'o'p\"" "Hello'o'p" $prompt
-performTest "echo \\\"Hello\"o\"p\\\"" "\"Helloop\"" $prompt
-performTest "echo \\\"Hello'o'p\\\"" "\"Helloop\"" $prompt
-performTest "echo \"Hello\\\"o\\\"p\"" "Hello\"o\"p" $prompt
-performTest "echo \\\"Hello\\\"o\\\"p\\\"" "\"Hello\"o\"p\"" $prompt
-performTest "echo 'Hell'o'p'" "Hellop" $prompt
-performTest "echo 'Hell\"o\"p'" "Hell\"o\"p" $prompt
-performTest "echo \\'Hello'o'p\\'" "'Helloop'" $prompt
-performTest "echo \\'Hello\"o\"p\\'" "'Helloop'" $prompt
-performTest "echo \"Hello\"o\"p\"hole\" Wo\"r\"ld\"" "Helloophole World" $prompt
-performTest "echo \"Hello'o'p'hole' Wo'r'ld\"" "Hello'o'p'hole' Wo'r'ld" $prompt
-performTest "echo \\\"Hello\"o\"p\"hole\" Wo\"r\"ld\\\"" "\"Helloophole World\"" $prompt
-performTest "echo \\\"Hello'o'p'hole' Wo'r'ld\\\"" "\"Helloophole World\"" $prompt
-performTest "echo \"Hello\\\"o\\\"p\\\"hole\\\" Wo\"r\"ld\"" "Hello\"o\"p\"hole\" World" $prompt
-performTest "echo \\\"Hello\\\"o\\\"p\\\"hole\\\" Wo\"r\"ld\\\"" "\"Hello\"o\"p\"hole\" World\"" $prompt
-performTest "echo 'Hell'o'p'hole' Wo'r'ld'" "Hellophole World" $prompt
-performTest "echo 'Hell\"o\"p\"hole\" Wo\"r\"ld'" "Hell\"o\"p\"hole\" Wo\"r\"ld" $prompt
-performTest "echo \\'Hello'o'p'hole' Wo'r'ld\\'" "'Helloophole World'" $prompt
-performTest "echo \\'Hello\"o\"p\"hole\" Wo\"r\"ld\\'" "'Helloophole World'" $prompt
+# performTest "echo Wo'r'ld" "World" $prompt
+# performTest "echo Wo\"r\"ld" "World" $prompt
+# performTest "echo \\\"Hello"       "\"Hello"                 $prompt
+# performTest "echo \"Hell'o\""      "Hell'o"                  $prompt
+# performTest "echo \\\"Hell\"o\\\"" "sane: string not closed" $prompt
+# performTest "echo Hell'o"          "sane: string not closed" $prompt
+# performTest "echo \\\"Hell'o\\\""  "sane: string not closed" $prompt
+# performTest "echo \"Hell\"o\""     "sane: string not closed" $prompt
+# performTest "echo Hello\\ World"   "Hello World"             $prompt
+# performTest "echo Hello\\" "Hello" $prompt
+# performTest "echo Hello\\ World\\" "Hello World" $prompt
+# performTest "echo \"Hello\"o\"p\"" "Helloop" $prompt
+# performTest "echo \"Hello'o'p\"" "Hello'o'p" $prompt
+# performTest "echo \\\"Hello\"o\"p\\\"" "\"Helloop\"" $prompt
+# performTest "echo \\\"Hello'o'p\\\"" "\"Helloop\"" $prompt
+# performTest "echo \"Hello\\\"o\\\"p\"" "Hello\"o\"p" $prompt
+# performTest "echo \\\"Hello\\\"o\\\"p\\\"" "\"Hello\"o\"p\"" $prompt
+# performTest "echo 'Hell'o'p'" "Hellop" $prompt
+# performTest "echo 'Hell\"o\"p'" "Hell\"o\"p" $prompt
+# performTest "echo \\'Hello'o'p\\'" "'Helloop'" $prompt
+# performTest "echo \\'Hello\"o\"p\\'" "'Helloop'" $prompt
+# performTest "echo \"Hello\"o\"p\"hole\" Wo\"r\"ld\"" "Helloophole World" $prompt
+# performTest "echo \"Hello'o'p'hole' Wo'r'ld\"" "Hello'o'p'hole' Wo'r'ld" $prompt
+# performTest "echo \\\"Hello\"o\"p\"hole\" Wo\"r\"ld\\\"" "\"Helloophole World\"" $prompt
+# performTest "echo \\\"Hello'o'p'hole' Wo'r'ld\\\"" "\"Helloophole World\"" $prompt
+# performTest "echo \"Hello\\\"o\\\"p\\\"hole\\\" Wo\"r\"ld\"" "Hello\"o\"p\"hole\" World" $prompt
+# performTest "echo \\\"Hello\\\"o\\\"p\\\"hole\\\" Wo\"r\"ld\\\"" "\"Hello\"o\"p\"hole\" World\"" $prompt
+# performTest "echo 'Hell'o'p'hole' Wo'r'ld'" "Hellophole World" $prompt
+# performTest "echo 'Hell\"o\"p\"hole\" Wo\"r\"ld'" "Hell\"o\"p\"hole\" Wo\"r\"ld" $prompt
+# performTest "echo \\'Hello'o'p'hole' Wo'r'ld\\'" "'Helloophole World'" $prompt
+# performTest "echo \\'Hello\"o\"p\"hole\" Wo\"r\"ld\\'" "'Helloophole World'" $prompt
 
 endTestSuite
 
 ### Prompt ###
 startTestSuite "Prompt"
 
-performTest "prompt >" "sane: syntax error, expected path after token '>'" $prompt  
-performTest "prompt \\>" "" "> "
-performTest "prompt \"orchid $\"" "" "orchid $ "
-performTest "prompt %" "" "% "
+# performTest "prompt >" "sane: syntax error, expected path after token '>'" $prompt  
+# performTest "prompt \">\"" "" "> "
+# performTest "prompt \\>" "" "> "
+# performTest "prompt \"orchid $\"" "" "orchid $ "
+# performTest "prompt myshell" "" "myshell" 
+# performTest "prompt %" "" "% "
+
+endTestSuite
+
+### Pipes ###
+
+### Wildcards ###
+startTestSuite "Wildcards"
+
+performTest "ls folder2/foo?.c" "folder2/foo1.c\tfolder2/foo2.c" $prompt
+performTest "ls folder2/foo*.c" "folder2/foo1.c\tfolder2/foo2.c\tfolder2/foo33.c" $prompt
+performTest "ls folder2/foo*" "folder2/foo1.c\tfolder2/foo2.c\tfolder2/foo33.c\tfolder2/foo4" $prompt
+performTest "ls folder2/abc.?" "folder2/abc.c\tfolder2/abc.x" $prompt
+performTest "ls folder2/abc*.?" "folder2/abc.c\tfolder2/abc.x\tfolder2/abc33.c" $prompt
+performTest "ls folder2/*" "folder2/abc.c[ ]*folder2/abc33.c[ ]*folder2/afoo[ ]*folder2/foo2.c[ ]*folder2/foo4[ ]*folder2/abc.x[ ]*folder2/abc33.cc[ ]*folder2/foo1.c[ ]*folder2/foo33.c[ ]*folder2/hfoo" $prompt
+# * Make sure wildcard doesn't expand when inside string
+performTest "ls \"folder2/*\"" "ls: folder2/*: No such file or directory" $prompt
+performTest "cat folder3/names.txt | grep \"Hello\"" "Hello World" $prompt 
+performTest "cat folder3/names.txt | grep 'Hello'" "Hello World" $prompt 
 
 endTestSuite
 
 ### Marking Guide ###
 # startTestSuite "Marking Guide"
 
-# performTest "" "" $prompt 
+# performTest "ls folder1" "foo1\tfoo2\tfoo3" $prompt
+# performTest "exit" "" $prompt
 # # performTest "" "" $prompt 
 
 # endTestSuite
