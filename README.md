@@ -12,3 +12,19 @@ Current Features:
 - Shell builtin command support
 - Zombie process reaping
 - Proper handling of slow system calls
+
+## User Guide
+### Tests
+- Test suite and all test cases are found in test/
+- Assuming you've built the shell and the 'sane' executable is found in bin/,
+you can execute the test suite by running:
+ ```
+ cd test
+ ./test.sh
+ ```
+- By default, clean output is shown, to see more verbose output, execute the
+test suite like so:
+```
+cd test
+./test.sh v
+```
