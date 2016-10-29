@@ -52,15 +52,39 @@ int tokenise(char *inputLine, char *token[])
                 char quoteType = (*it == '"') ? '"' : '\'';
 
                 // Assign start address of string (after quote) to array
-                token[numTokens] = ++it;
+                // token[numTokens] = ++it;
+                token[numTokens] = it++;
                 ++numTokens;
 
                 // Don't stop consuming characters until we find end of input or
                 // end of string
-                while (*it && *it != quoteType) {
+                while (*it) {
                     // If escape character, skip over next character (ignore it)
                     if (*it == '\\') {
-                        expandEscapeCharacter(it);
+                        /* expandEscapeCharacter(it); */
+                        ++it;
+                    } else if (*it == '"' || *it == quoteType) {
+                        char innerQuoteType = *it;
+                        char *itStr = ++it;
+                        int isStringClosed = 0;
+
+                        while (*itStr) {
+                            // Skip over escaped characters
+                            if (*itStr == '\\') {
+                                ++itStr;
+                            } else if (*itStr == innerQuoteType) {
+                                isStringClosed = 1;
+                                break;
+                            }
+                            ++itStr;
+                        }
+
+                        if (!isStringClosed) { // This is the end of our string
+                            --it; // Go back one so rest of fn sees we reached end of our string
+                            break;
+                        } else {
+                            it = itStr;
+                        }
                     }
                     ++it;
                 }
@@ -70,23 +94,41 @@ int tokenise(char *inputLine, char *token[])
                 if (!(*it)) {
                     return -2;
                 }
-            } else {
-                // If first is escape character, expand it before setting start
-                // address of token
-                if (*it == '\\') {
-                    expandEscapeCharacter(it);
-                }
 
+                ++it;
+            } else {
                 // Assign start address of token to array
                 token[numTokens] = it;
                 ++numTokens;
 
                 // Skip characters we are interested in ('a', 'b', '!', etc.)
-                // (not
-                // including space, tab, newline etc.)
+                // (not including space, tab, newline etc.)
                 while (*it && ((*it > 32) && (*it <= 126))) {
+                    // Skip escaped characters
                     if (*it == '\\') {
-                        expandEscapeCharacter(it);
+                        ++it;
+                    } else if (*it == '"' | *it == '\'') {
+                        // Ensure that string is closed
+                        char quoteType = *it;
+                        char *itStr = ++it;
+                        int stringClosed = 0;
+                        while (*itStr) {
+                            // Skip over escaped characters
+                            if (*itStr == '\\') {
+                                ++itStr;
+                            } else if (*itStr == quoteType) {
+                                stringClosed = 1;
+                                break;
+                            }
+                            ++itStr;
+                        }
+
+                        // Return error if string not closed
+                        if (!stringClosed) {
+                            return -2;
+                        } else {
+                            it = itStr;
+                        }
                     }
                     ++it;
                 }
