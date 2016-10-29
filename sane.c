@@ -124,7 +124,14 @@ int sane_prompt(int argc, char **argv)
 int sane_pwd(int argc, char **argv)
 {
     if (argc == 1) {
-        printf("Hello wrold\n");
+        char cwd[1024];
+
+        if (getcwd(cwd, sizeof(cwd)) != NULL) {
+            printf("%s\n", cwd);
+        } else {
+            perror("pwd");
+            return EXIT_FAILURE;
+        }
     } else {
         fprintf(stderr, "usage: pwd\n");
         return EXIT_FAILURE;
