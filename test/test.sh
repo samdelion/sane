@@ -20,7 +20,7 @@ proc performTest { testInput expectedOutput prompt } {
         timeout { send_user "$extraNewLine\[     FAIL ] $testInput\n"; exit 1; }
         $prompt
     }
-    send_user "$extraNewLine\[       OK ] $expectedOutput\n"
+    send_user "$extraNewLine\[       OK ] $testInput\n"
 
     # Increment number of successful tests
     set numTests [expr $numTests + 1]
@@ -119,9 +119,21 @@ endTestSuite
 
 ### Prompt ###
 startTestSuite "Prompt"
-performTest "prompt \>" "" ">"
-performTest "prompt %" "" "%"
+
+performTest "prompt >" "sane: syntax error, expected path after token '>'" $prompt  
+performTest "prompt \\>" "" "> "
+performTest "prompt \"orchid $\"" "" "orchid $ "
+performTest "prompt %" "" "% "
+
 endTestSuite
+
+### Marking Guide ###
+# startTestSuite "Marking Guide"
+
+# performTest "" "" $prompt 
+# # performTest "" "" $prompt 
+
+# endTestSuite
 
 # performTest "" "" $prompt
 # performTest "" "" $prompt
