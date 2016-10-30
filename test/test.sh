@@ -13,7 +13,7 @@ proc performTest { testInput expectedOutput prompt purpose } {
 
     if { $verbose == "true" } {
         send_user "\n"
-        send_user "\[-----------------------------------------------------------------------------\]\n"
+        send_user "\[-----------------\]\n"
         # send_user "\[$currTestSuiteName\]\n\[$testInput\]\n\[Expect: $expectedOutput\]"
         send_user "\[ Test suite      \]: $currTestSuiteName\n"
         send_user "\[ Purpose         \]: $purpose\n"
@@ -23,16 +23,16 @@ proc performTest { testInput expectedOutput prompt purpose } {
         send "$testInput\r"
         expect {
             timeout {
-                send_user "\n\[------------------------------------FAIL-------------------------------------\]\n\n"
+                send_user "\n\[-----------------\] FAIL\n\n"
                 exit 1;
             }
             $expectedOutput
         }
         expect {
-            send_user "\n\[------------------------------------FAIL-------------------------------------\]\n\n"
+            send_user "\n\[-----------------\] FAIL\n\n"
             $prompt
         }
-        send_user "\n\[------------------------------------PASS-------------------------------------\]\n\n"
+        send_user "\n\[-----------------\] PASS\n"
     } else {
         send_user "\[ RUN      ] $testInput \n"
         send "$testInput\r"
@@ -65,7 +65,7 @@ proc startTestSuite { testSuiteName } {
         send_user "\[\-\-\-\-\-\-\-\-\-\-\] Test suite: $testSuiteName\n"
     } else {
         send_user "\n\nStart test suite: $testSuiteName\n"
-        send_user "\[=============================================================================\]\n"
+        send_user "\[=================\]"
         # send_user "\[\-\-\-\-\-\-\-\-\-\-\] Test suite: $testSuiteName\n"
     }
 
@@ -80,7 +80,7 @@ proc endTestSuite { } {
     if { $verbose == "false" } {
         send_user "\[\-\-\-\-\-\-\-\-\-\-\] $numTests tests completed successfully from test suite: $currTestSuiteName\n\n"
     } else {
-        send_user "\n\[=============================================================================\]\n"
+        send_user "\[=================\]\n"
         send_user "$numTests tests completed successfully from test suite: $currTestSuiteName\n\n"
     }
 
@@ -226,18 +226,40 @@ endTestSuite
 ### Miscellaneous ###
 startTestSuite "Misc"
 
-# performTest "|" "sane: first token is command separator" $prompt
-# performTest "&" "sane: first token is command separator" $prompt
-# performTest ";" "sane: first token is command separator" $prompt
-# performTest "echo Hello |" "sane: last command followed by command separator '|'" $prompt
-# performTest "echo Hello | | cat" "sane: at least two successive commands are separated by more than one command separator" $prompt
-# performTest "echo Hello & & cat" "sane: at least two successive commands are separated by more than one command separator" $prompt
+performTest\
+    "|"\
+    "sane: first token is command separator"\
+    $prompt\
+    "Check that shell throws an error if first token is a '|' command separator"
+performTest\
+    "&"\
+    "sane: first token is command separator"\
+    $prompt\
+    "Check that shell throws an error if first token is a '&' command separator"
+performTest\
+    ";"\
+    "sane: first token is command separator"\
+    $prompt\
+    "Check that shell throws an error if first token is a ';' command separator"
+performTest\
+    "echo Hello |"\
+    "sane: last command followed by command separator '|'"\
+    $prompt\
+    "Check that an error is thrown if user tries to pipe last command."
+performTest\
+    "echo Hello | | cat"\
+    "sane: at least two successive commands are separated by more than one command separator"\
+    $prompt\
+    "Check that the two successive command error works as expected for the '|' separator."
+performTest\
+    "echo Hello & & cat"\
+    "sane: at least two successive commands are separated by more than one command separator"\
+    $prompt\
+    "Check that the two successive command error works as expected for the '&' separator."
 performTest\
     "echo Hello ; ; cat"\
     "sane: at least two successive commands are separated by more than one command separator"\
     $prompt\
     "Check that the two successive command error works as expected for the ';' separator."
-
-# performTest "" "" $prompt
 
 endTestSuite
