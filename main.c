@@ -130,9 +130,7 @@ int main(int argc, char **argv)
                 inputPtr = fgets(inputLine, INPUT_LINE_SIZE, stdin);
             } while (inputPtr == NULL && errno == EINTR);
 
-            // TODO: Remove. For now, I would like to know cases where this
-            // is true
-            assert(inputPtr != NULL && "Couldn't get input!\n");
+            /* assert(inputPtr != NULL && "Couldn't get input!\n"); */
 
             if (inputPtr != NULL) {
                 // Remove newline at end of input buffer
@@ -170,6 +168,9 @@ int main(int argc, char **argv)
 
                     freeCommands(command, numCommands);
                 }
+            } else {
+                // Quit on Ctrl-D
+                break;
             }
         }
 
