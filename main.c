@@ -141,10 +141,10 @@ int main(int argc, char **argv)
                 char *token[MAX_NUM_TOKENS];
                 int numTokens = tokenise(inputLine, token);
                 if (numTokens == -1) {
-                    fprintf(stderr, "sane: Number of tokens provided exceeds "
+                    fprintf(stderr, "sane: number of tokens provided exceeds "
                                     "MAX_NUM_TOKENS\n");
                 } else if (numTokens == -2) {
-                    fprintf(stderr, "sane: String not closed\n");
+                    fprintf(stderr, "sane: string not closed\n");
                 }
 
                 command_t command[MAX_NUM_COMMANDS];
@@ -153,20 +153,16 @@ int main(int argc, char **argv)
                 int numCommands = separateCommands(token, numTokens, command);
                 if (numCommands == -1) {
                     fprintf(stderr, "sane: command array is too small for "
-                                    "all commands.\n");
+                                    "all commands\n");
                 } else if (numCommands == -2) {
                     fprintf(stderr, "sane: at least two successive "
                                     "commands are separated by more than "
-                                    "one command separator.\n");
+                                    "one command separator\n");
                 } else if (numCommands == -3) {
-                    fprintf(stderr,
-                            "sane: first token is command separator.\n");
+                    fprintf(stderr, "sane: first token is command separator\n");
                 } else if (numCommands == -4) {
                     fprintf(stderr, "sane: last command followed by "
                                     "command separator '|'\n");
-                } else if (numCommands == -5) {
-                    fprintf(stderr, "sane: redirection operator last token "
-                                    "in at least one command.\n");
                 }
 
                 if (numCommands > 0) {
@@ -181,7 +177,7 @@ int main(int argc, char **argv)
         // Shutdown shell
         sane_shutdown();
     } else {
-        fprintf(stderr, "sane: Initialization of shell failed.\n");
+        fprintf(stderr, "sane: initialization of shell failed\n");
     }
 
     return 0;
