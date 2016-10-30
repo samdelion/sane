@@ -63,7 +63,7 @@ void sane_shutdown()
 int sane_exit(int argc, char **argv);
 int sane_help(int argc, char **argv);
 int sane_prompt(int argc, char **argv);
-/* int sane_pwd(int argc, char **argv); */
+int sane_pwd(int argc, char **argv);
 
 int sane_help(int argc, char **argv)
 {
@@ -121,15 +121,31 @@ int sane_prompt(int argc, char **argv)
     return EXIT_SUCCESS;
 }
 
-/* // Strings used to call built-in functions and function pointer */
-/* // (note order matches in both arrays) */
-/* char *sane_builtinStr[] = {"cd", "exit", "help", "prompt", "pwd"}; */
-char *sane_builtinStr[] = {"help", "exit", "prompt"};
+int sane_pwd(int argc, char **argv)
+{
+    if (argc == 1) {
+        char cwd[1024];
 
-/* int (*sane_builtinFunc[])(int, char **) = {&sane_cd, &sane_exit, &sane_help,
- * &sane_prompt, &sane_pwd}; */
+        if (getcwd(cwd, sizeof(cwd)) != NULL) {
+            printf("%s\n", cwd);
+        } else {
+            perror("pwd");
+            return EXIT_FAILURE;
+        }
+    } else {
+        fprintf(stderr, "usage: pwd\n");
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+// Strings used to call built-in functions and function pointer
+// (note order matches in both arrays)
+char *sane_builtinStr[] = {"help", "exit", "prompt", "pwd"};
+
 int (*sane_builtinFuncs[])(int, char **) = {&sane_help, &sane_exit,
-                                            &sane_prompt};
+                                            &sane_prompt, &sane_pwd};
 
 // Return the number of shell built-in functions.
 int sane_numBuiltins()

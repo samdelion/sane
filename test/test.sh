@@ -131,6 +131,15 @@ endTestSuite
 
 ### Pipes ###
 
+### Builtins
+startTestSuite "Builtins"
+
+performTest "pwd" "*/test" $prompt
+performTest "pwd | cat | grep \"test\"" "*/test" $prompt
+performTest "pwd | grep \"test\"" "*/test" $prompt
+
+endTestSuite
+
 ### Wildcards ###
 startTestSuite "Wildcards"
 
