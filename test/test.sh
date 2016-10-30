@@ -131,12 +131,21 @@ endTestSuite
 
 ### Pipes ###
 
+### Redirection ###
+
 ### Builtins
 startTestSuite "Builtins"
 
 performTest "pwd" "*/test" $prompt
 performTest "pwd | cat | grep \"test\"" "*/test" $prompt
 performTest "pwd | grep \"test\"" "*/test" $prompt
+performTest "cd test ; pwd" "cd: No such file or directory" $prompt
+# * Test relative directories work
+performTest "cd ./folder1 ; cd ../ ; pwd" "*/test" $prompt
+# * Bash ignores other arguments to cd - expect no error
+performTest "cd folder1 folderThatDoesNotExist ; cd ../ ; pwd" "*/test" $prompt
+performTest "cd folder1 folderThatDoesNotExist1 folderThatDoesNotExist2 ; cd ../ ; pwd" "*/test" $prompt
+# performTest "cd ; pwd" "$env(HOME)" $prompt
 
 endTestSuite
 
