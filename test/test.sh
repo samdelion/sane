@@ -3,24 +3,49 @@ set timeout 2
 log_user 0
 set numTests 0
 set currTestSuiteName "None"
-set extraNewLine ""
+set verbose "false"
 
 ### Procedures ###
-proc performTest { testInput expectedOutput prompt } {
+proc performTest { testInput expectedOutput prompt purpose } {
     global numTests
-    global extraNewLine
+    global verbose
+    global currTestSuiteName
 
-    send_user "\[ RUN      ] $testInput \n"
-    send "$testInput\r"
-    expect {
-        timeout { send_user "$extraNewLine\[     FAIL ] $testInput\n"; exit 1; }
-        $expectedOutput
+    if { $verbose == "true" } {
+        send_user "\n"
+        send_user "\[-----------------------------------------------------------------------------\]\n"
+        # send_user "\[$currTestSuiteName\]\n\[$testInput\]\n\[Expect: $expectedOutput\]"
+        send_user "\[ Test suite      \]: $currTestSuiteName\n"
+        send_user "\[ Purpose         \]: $purpose\n"
+        send_user "\[ Input           \]: $testInput\n"
+        send_user "\[ Expected output \]: $expectedOutput\n"
+        send_user "\n$prompt "
+        send "$testInput\r"
+        expect {
+            timeout {
+                send_user "\n\[------------------------------------FAIL-------------------------------------\]\n\n"
+                exit 1;
+            }
+            $expectedOutput
+        }
+        expect {
+            send_user "\n\[------------------------------------FAIL-------------------------------------\]\n\n"
+            $prompt
+        }
+        send_user "\n\[------------------------------------PASS-------------------------------------\]\n\n"
+    } else {
+        send_user "\[ RUN      ] $testInput \n"
+        send "$testInput\r"
+        expect {
+            timeout { send_user "\[     FAIL ] $testInput\n"; exit 1; }
+            $expectedOutput
+        }
+        expect {
+            timeout { send_user "\[     FAIL ] $testInput\n"; exit 1; }
+            $prompt
+        }
+        send_user "\[       OK ] $testInput\n"
     }
-    expect {
-        timeout { send_user "$extraNewLine\[     FAIL ] $testInput\n"; exit 1; }
-        $prompt
-    }
-    send_user "$extraNewLine\[       OK ] $testInput\n"
 
     # Increment number of successful tests
     set numTests [expr $numTests + 1]
@@ -29,13 +54,20 @@ proc performTest { testInput expectedOutput prompt } {
 proc startTestSuite { testSuiteName } {
     global currTestSuiteName
     global numTests
+    global verbose
 
     if {$numTests != 0} {
         send_user "ERROR: Test suite: \"$currTestSuiteName\" wasn't ended! Call 'endTestSuite'\n"
         exit 1;
     }
 
-    send_user "\[\-\-\-\-\-\-\-\-\-\-\] Test suite: $testSuiteName\n"
+    if { $verbose == "false" } {
+        send_user "\[\-\-\-\-\-\-\-\-\-\-\] Test suite: $testSuiteName\n"
+    } else {
+        send_user "\n\nStart test suite: $testSuiteName\n"
+        send_user "\[=============================================================================\]\n"
+        # send_user "\[\-\-\-\-\-\-\-\-\-\-\] Test suite: $testSuiteName\n"
+    }
 
     set currTestSuiteName $testSuiteName
 }
@@ -43,8 +75,14 @@ proc startTestSuite { testSuiteName } {
 proc endTestSuite { } {
     global numTests
     global currTestSuiteName
+    global verbose
 
-    send_user "\[\-\-\-\-\-\-\-\-\-\-\] $numTests tests completed successfully from test suite: $currTestSuiteName\n\n"
+    if { $verbose == "false" } {
+        send_user "\[\-\-\-\-\-\-\-\-\-\-\] $numTests tests completed successfully from test suite: $currTestSuiteName\n\n"
+    } else {
+        send_user "\n\[=============================================================================\]\n"
+        send_user "$numTests tests completed successfully from test suite: $currTestSuiteName\n\n"
+    }
 
     # Reset number of tests
     set numTests 0
@@ -52,14 +90,13 @@ proc endTestSuite { } {
 }
 
 proc setVerbose { boolean } {
-    global extraNewLine
+    global verbose 
 
     if {$boolean == "true"} {
         log_user 1
-        set extraNewLine "\n"
+        set verbose "true"
     }
 }
-
 ### Setup ###
 set argument [lindex $argv 0]
 
@@ -67,8 +104,10 @@ if {$argument == "v"} {
     setVerbose "true"
 }
 
-send_user "\[\=\=\=\=\=\=\=\=\=\=\] Running tests\n"
-send_user "\[\-\-\-\-\-\-\-\-\-\-\] Test environment setup... "
+if { $verbose == "false" } {
+    send_user "\[\=\=\=\=\=\=\=\=\=\=\] Running tests\n"
+    send_user "\[\-\-\-\-\-\-\-\-\-\-\] Test environment setup... "
+}
 
 spawn ../bin/sane
 expect {
@@ -114,7 +153,7 @@ startTestSuite "Strings"
 # performTest "echo 'Hell\"o\"p\"hole\" Wo\"r\"ld'" "Hell\"o\"p\"hole\" Wo\"r\"ld" $prompt
 # performTest "echo \\'Hello'o'p'hole' Wo'r'ld\\'" "'Helloophole World'" $prompt
 # performTest "echo \\'Hello\"o\"p\"hole\" Wo\"r\"ld\\'" "'Helloophole World'" $prompt
-# * Check if string not closed works correctly
+# # * Check if string not closed works correctly
 # performTest "echo \"Hello" "sane: string not closed" $prompt
 
 endTestSuite
@@ -148,7 +187,7 @@ startTestSuite "Builtins"
 # # * Bash ignores other arguments to cd - expect no error
 # performTest "cd test folderThatDoesNotExist ; pwd" "*/test" $prompt
 # performTest "cd test folderThatDoesNotExist1 folderThatDoesNotExist2 ; pwd" "*/test" $prompt
-# performTest "cd ; pwd" "$env(HOME)" $prompt
+# # performTest "cd ; pwd" "$env(HOME)" $prompt
 
 endTestSuite
 
@@ -187,13 +226,17 @@ endTestSuite
 ### Miscellaneous ###
 startTestSuite "Misc"
 
-performTest "|" "sane: first token is command separator" $prompt
-performTest "&" "sane: first token is command separator" $prompt
-performTest ";" "sane: first token is command separator" $prompt
-performTest "echo Hello |" "sane: last command followed by command separator '|'" $prompt
-performTest "echo Hello | | cat" "sane: at least two successive commands are separated by more than one command separator" $prompt
-performTest "echo Hello & & cat" "sane: at least two successive commands are separated by more than one command separator" $prompt
-performTest "echo Hello ; ; cat" "sane: at least two successive commands are separated by more than one command separator" $prompt
+# performTest "|" "sane: first token is command separator" $prompt
+# performTest "&" "sane: first token is command separator" $prompt
+# performTest ";" "sane: first token is command separator" $prompt
+# performTest "echo Hello |" "sane: last command followed by command separator '|'" $prompt
+# performTest "echo Hello | | cat" "sane: at least two successive commands are separated by more than one command separator" $prompt
+# performTest "echo Hello & & cat" "sane: at least two successive commands are separated by more than one command separator" $prompt
+performTest\
+    "echo Hello ; ; cat"\
+    "sane: at least two successive commands are separated by more than one command separator"\
+    $prompt\
+    "Check that the two successive command error works as expected for the ';' separator."
 
 # performTest "" "" $prompt
 
