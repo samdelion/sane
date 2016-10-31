@@ -343,12 +343,11 @@ performTest\
     "cd: No such file or directory"\
     $prompt\
     "Test that cd complains if no directory to cd to."
-# # * Bash ignores other arguments to cd - expect no error
 performTest\
     "cd test folderThatDoesNotExist ; pwd"\
     "*/test"\
     $prompt\
-    "Test that cd ignores arguments other than first."
+    "Test that cd ignores arguments other than first (like bash)."
 performTest\
     "cd test folderThatDoesNotExist1 folderThatDoesNotExist2 ; pwd"\
     "*/test"\
@@ -363,174 +362,169 @@ startTestSuite "Wildcards"
 
 performTest\
     "ls folder2/foo?.c"\
-    "folder2/foo1.c\tfolder2/foo2.c"\
+    "folder2/foo1.c[ ]*folder2/foo2.c"\
     $prompt\
     "Test that '?' wildcard character works."
 performTest\
     "ls folder2/foo*.c"\
-    "folder2/foo1.c\tfolder2/foo2.c\tfolder2/foo33.c"\
+    "folder2/foo1.c[ ]*folder2/foo2.c[ ]*folder2/foo33.c"\
     $prompt\
     "Test that '*' wildcard character works."
 performTest\
     "ls folder2/foo*"\
-    "folder2/foo1.c\tfolder2/foo2.c\tfolder2/foo33.c\tfolder2/foo4"\
+    "folder2/foo1.c[ ]*folder2/foo2.c[ ]*folder2/foo33.c[ ]*folder2/foo4"\
     $prompt\
     "Test that '*' wildcard character works."
 performTest\
     "ls folder2/abc.?"\
-    "folder2/abc.c\tfolder2/abc.x"\
+    "folder2/abc.c[ ]*folder2/abc.x"\
     $prompt\
     "Test that '?' wildcard character works."
 performTest\
     "ls folder2/abc*.?"\
-    "folder2/abc.c\tfolder2/abc.x\tfolder2/abc33.c"\
+    "folder2/abc.c[ ]*folder2/abc.x[ ]*folder2/abc33.c"\
     $prompt\
     "Test that the '?' and '*' wildcard characters work in combination."
-# performTest\
-#     "ls folder2/*"\
-#     # "folder2/abc.c[ ]*folder2/abc33.c[ ]*folder2/afoo[ ]*folder2/foo2.c[ ]*folder2/foo4[ ]*folder2/abc.x[ ]*folder2/abc33.cc[ ]*folder2/foo1.c[ ]*folder2/foo33.c[ ]*folder2/hfoo"\
-#     $prompt\
-#     "Test that '*' wildcard character works with large number of files."
-# # * Make sure wildcard doesn't expand when inside string
 performTest\
     "ls \"folder2/*\""\
     "ls: folder2/*: No such file or directory"\
     $prompt\
     "Make sure wildcard doesn't expand when inside string"
+# performTest\
+#     "ls folder2/*"\
+#     "folder2/abc.c[ ]*folder2/abc33.c[ ]*folder2/foo2.c[ ]*folder2/hfoo[ ]*folder2/abc.x[ ]*folder2/afoo[ ]*folder2/foo33.c[ ]*folder2/abc33.c[ ]*folder2/foo1.c[ ]*folder2/foo4[ ]*"\
+#     $prompt\
+#     "Test that '*' wildcard character works with large number of files."
 
 endTestSuite
 
-### Marking Guide ###
-# startTestSuite "Marking Guide"
-
-# performTest "ls folder1" "foo1\tfoo2\tfoo3" $prompt
-# performTest "exit" "" $prompt
-# # performTest "" "" $prompt 
-
-# endTestSuite
-
 ### Miscellaneous ###
-# startTestSuite "Misc"
+startTestSuite "Misc"
 
+performTest\
+    "|"\
+    "sane: first token is command separator"\
+    $prompt\
+    "Check that shell throws an error if first token is a '|' command separator"
+performTest\
+    "&"\
+    "sane: first token is command separator"\
+    $prompt\
+    "Check that shell throws an error if first token is a '&' command separator"
+performTest\
+    ";"\
+    "sane: first token is command separator"\
+    $prompt\
+    "Check that shell throws an error if first token is a ';' command separator"
+performTest\
+    "echo Hello |"\
+    "sane: last command followed by command separator '|'"\
+    $prompt\
+    "Check that an error is thrown if user tries to pipe last command."
+performTest\
+    "echo Hello | | cat"\
+    "sane: at least two successive commands are separated by more than one command separator"\
+    $prompt\
+    "Check that the two successive command error works as expected for the '|' separator."
+performTest\
+    "echo Hello & & cat"\
+    "sane: at least two successive commands are separated by more than one command separator"\
+    $prompt\
+    "Check that the two successive command error works as expected for the '&' separator."
+performTest\
+    "echo Hello ; ; cat"\
+    "sane: at least two successive commands are separated by more than one command separator"\
+    $prompt\
+    "Check that the two successive command error works as expected for the ';' separator."
+set timeout 5
+performTest\
+    "sleep 1 ; echo hello"\
+    "hello"\
+    $prompt\
+    "Ensure that sequential execution works as expected."
+performTest\
+    "sleep 1 ; ls -l folder1"\
+    "[ ]*foo1\r\n[ ]*foo2\r\n[ ]*foo3"\
+    $prompt\
+    "Ensure that sequential execution works as expected."
+performTest\
+    "sleep 1 ; echo hello1 ; sleep 1 ; echo hello2"\
+    "hello1\r\nhello2"\
+    $prompt\
+    "Ensure that sequential execution works as expected with multiple sleeps."
+set timeout 2 
+performTest\
+    "sleep 10 & echo hello"\
+    "hello"\
+    $prompt\
+    "Test that background execution works (shell shouldn't wait for sleep to execute before executing the echo command)"
+performTest\
+    "ls folder2/abc.c folder2/abc.x folder2/abc33.c folder2/abc33.cc"\
+    "folder2/abc.c[ ]*folder2/abc.x[ ]*folder2/abc33.c[ ]*folder2/abc33.cc"\
+    $prompt\
+    "Test a command with a large number of parameters"
 # performTest\
-#     "|"\
-#     "sane: first token is command separator"\
+#     "exit"\
+#     ""\
 #     $prompt\
-#     "Check that shell throws an error if first token is a '|' command separator"
-# performTest\
-#     "&"\
-#     "sane: first token is command separator"\
-#     $prompt\
-#     "Check that shell throws an error if first token is a '&' command separator"
-# performTest\
-#     ";"\
-#     "sane: first token is command separator"\
-#     $prompt\
-#     "Check that shell throws an error if first token is a ';' command separator"
-# performTest\
-#     "echo Hello |"\
-#     "sane: last command followed by command separator '|'"\
-#     $prompt\
-#     "Check that an error is thrown if user tries to pipe last command."
-# performTest\
-#     "echo Hello | | cat"\
-#     "sane: at least two successive commands are separated by more than one command separator"\
-#     $prompt\
-#     "Check that the two successive command error works as expected for the '|' separator."
-# performTest\
-#     "echo Hello & & cat"\
-#     "sane: at least two successive commands are separated by more than one command separator"\
-#     $prompt\
-#     "Check that the two successive command error works as expected for the '&' separator."
-# performTest\
-#     "echo Hello ; ; cat"\
-#     "sane: at least two successive commands are separated by more than one command separator"\
-#     $prompt\
-#     "Check that the two successive command error works as expected for the ';' separator."
-# set timeout 5
-# performTest\
-#     "sleep 1 ; echo hello"\
-#     "hello"\
-#     $prompt\
-#     "Ensure that sequential execution works as expected."
-# performTest\
-#     "sleep 1 ; ls -l folder1"\
-#     "[ ]*foo1\r\n[ ]*foo2\r\n[ ]*foo3"\
-#     $prompt\
-#     "Ensure that sequential execution works as expected."
-# performTest\
-#     "sleep 1 ; echo hello1 ; sleep 1 ; echo hello2"\
-#     "hello1\r\nhello2"\
-#     $prompt\
-#     "Ensure that sequential execution works as expected with multiple sleeps."
-# set timeout 2 
-# performTest\
-#     "sleep 10 & echo hello"\
-#     "hello"\
-#     $prompt\
-#     "Test that background execution works (shell shouldn't wait for sleep to execute before executing the echo command)"
-# performTest\
-#     "ls folder2/abc.c folder2/abc.x folder2/abc33.c folder2/abc33.cc"\
-#     "folder2/abc.c[ ]*folder2/abc.x[ ]*folder2/abc33.c[ ]*folder2/abc33.cc"\
-#     $prompt\
-#     "Test a command with a large number of parameters"
+#     "Test that the exit command works."
 
-# endTestSuite
+endTestSuite
 
 ### Redirection ###
-# startTestSuite "Redirection"
+startTestSuite "Redirection"
 
-# performTest\
-#     "cat < folder3/names.txt"\
-#     "Betty\r\nAardvark\r\nHello World"\
-#     $prompt\
-#     "Test that standard input redirection works."
-# performTest\
-#     "grep Betty < folder3/names.txt"\
-#     "Betty"\
-#     $prompt\
-#     "Test that standard input redirection works."
-# performTest\
-#     "cat < folder3/names.txt > folder4/names.txt ; cat < folder4/names.txt"\
-#     "Betty\r\nAardvark\r\nHello World"\
-#     $prompt\
-#     "Test that standard output redirection works."
-# performTest\
-#     "grep Betty < folder3/names.txt > folder4/betty.txt ; cat < folder4/betty.txt"\
-#     "Betty"\
-#     $prompt\
-#     "Test that standard input redirection works."
+performTest\
+    "cat < folder3/names.txt"\
+    "Betty\r\nAardvark\r\nHello World"\
+    $prompt\
+    "Test that standard input redirection works."
+performTest\
+    "grep Betty < folder3/names.txt"\
+    "Betty"\
+    $prompt\
+    "Test that standard input redirection works."
+performTest\
+    "cat < folder3/names.txt > folder4/names.txt ; cat < folder4/names.txt"\
+    "Betty\r\nAardvark\r\nHello World"\
+    $prompt\
+    "Test that standard output redirection works."
+performTest\
+    "grep Betty < folder3/names.txt > folder4/betty.txt ; cat < folder4/betty.txt"\
+    "Betty"\
+    $prompt\
+    "Test that standard input redirection works."
 
-# endTestSuite
+endTestSuite
 
 ### Pipes ###
 
-# startTestSuite "Pipes"
+startTestSuite "Pipes"
 
-# performTest\
-#     "cat folder3/names.txt | cat"\
-#     "Betty\r\nAardvark\r\nHello World"\
-#     $prompt\
-#     "Test that a simple shell pipeline works."
-# performTest\
-#     "cat folder3/names.txt | grep Aardvark"\
-#     "Aardvark"\
-#     $prompt\
-#     "Test that a simple shell pipeline works."
-# performTest\
-#     "cat folder3/names.txt | sort"\
-#     "Aardvark\r\nBetty\r\nHello World"\
-#     $prompt\
-#     "Test that a simple shell pipeline works."
-# performTest\
-#     "cat folder3/names.txt | sort -r"\
-#     "Hello World\r\nBetty\r\nAardvark"\
-#     $prompt\
-#     "Test that a simple shell pipeline works."
-# performTest\
-#     "cat folder3/names.txt | sort | sort -r | grep Hello"\
-#     "Hello World"\
-#     $prompt\
-#     "Test that a longer shell pipeline works."
+performTest\
+    "cat folder3/names.txt | cat"\
+    "Betty\r\nAardvark\r\nHello World"\
+    $prompt\
+    "Test that a simple shell pipeline works."
+performTest\
+    "cat folder3/names.txt | grep Aardvark"\
+    "Aardvark"\
+    $prompt\
+    "Test that a simple shell pipeline works."
+performTest\
+    "cat folder3/names.txt | sort"\
+    "Aardvark\r\nBetty\r\nHello World"\
+    $prompt\
+    "Test that a simple shell pipeline works."
+performTest\
+    "cat folder3/names.txt | sort -r"\
+    "Hello World\r\nBetty\r\nAardvark"\
+    $prompt\
+    "Test that a simple shell pipeline works."
+performTest\
+    "cat folder3/names.txt | sort | sort -r | grep Hello"\
+    "Hello World"\
+    $prompt\
+    "Test that a longer shell pipeline works."
 
-# endTestSuite
+endTestSuite
