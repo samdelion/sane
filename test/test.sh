@@ -366,33 +366,33 @@ endTestSuite
 startTestSuite "Wildcards"
 
 performTest\
-    "ls folder2/foo?.c"\
+    "ls folder2/foo?.c | sort"\
     "folder2/foo1.c[ ]*folder2/foo2.c"\
     $prompt\
     "Test that '?' wildcard character works."
 performTest\
-    "ls folder2/foo*.c"\
+    "ls folder2/foo*.c | sort"\
     "folder2/foo1.c[ ]*folder2/foo2.c[ ]*folder2/foo33.c"\
     $prompt\
     "Test that '*' wildcard character works."
 performTest\
-    "ls folder2/foo*"\
+    "ls folder2/foo* | sort"\
     "folder2/foo1.c[ ]*folder2/foo2.c[ ]*folder2/foo33.c[ ]*folder2/foo4"\
     $prompt\
     "Test that '*' wildcard character works."
 performTest\
-    "ls folder2/abc.?"\
+    "ls folder2/abc.? | sort"\
     "folder2/abc.c[ ]*folder2/abc.x"\
     $prompt\
     "Test that '?' wildcard character works."
 performTest\
-    "ls folder2/abc*.?"\
-    "folder2/abc.c[ ]*folder2/abc.x[ ]*folder2/abc33.c"\
+    "ls folder2/abc*.? | sort"\
+    "folder2/abc33.c[ ]*folder2/abc.c[ ]*folder2/abc.x"\
     $prompt\
     "Test that the '?' and '*' wildcard characters work in combination."
 performTest\
     "ls \"folder2/*\""\
-    "ls: folder2/*: No such file or directory"\
+    "[ ]*No such file or directory"\
     $prompt\
     "Make sure wildcard doesn't expand when inside string"
 # performTest\
