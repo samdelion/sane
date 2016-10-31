@@ -122,63 +122,206 @@ set prompt "%"
 ### Strings ###
 startTestSuite "Strings"
 
-# performTest "echo Wo'r'ld" "World" $prompt
-# performTest "echo Wo\"r\"ld" "World" $prompt
-# performTest "echo \\\"Hello"       "\"Hello"                 $prompt
-# performTest "echo \"Hell'o\""      "Hell'o"                  $prompt
-# performTest "echo \\\"Hell\"o\\\"" "sane: string not closed" $prompt
-# performTest "echo Hell'o"          "sane: string not closed" $prompt
-# performTest "echo \\\"Hell'o\\\""  "sane: string not closed" $prompt
-# performTest "echo \"Hell\"o\""     "sane: string not closed" $prompt
-# performTest "echo Hello\\ World"   "Hello World"             $prompt
-# performTest "echo Hello\\" "Hello" $prompt
-# performTest "echo Hello\\ World\\" "Hello World" $prompt
-# performTest "echo \"Hello\"o\"p\"" "Helloop" $prompt
-# performTest "echo \"Hello'o'p\"" "Hello'o'p" $prompt
-# performTest "echo \\\"Hello\"o\"p\\\"" "\"Helloop\"" $prompt
-# performTest "echo \\\"Hello'o'p\\\"" "\"Helloop\"" $prompt
-# performTest "echo \"Hello\\\"o\\\"p\"" "Hello\"o\"p" $prompt
-# performTest "echo \\\"Hello\\\"o\\\"p\\\"" "\"Hello\"o\"p\"" $prompt
-# performTest "echo 'Hell'o'p'" "Hellop" $prompt
-# performTest "echo 'Hell\"o\"p'" "Hell\"o\"p" $prompt
-# performTest "echo \\'Hello'o'p\\'" "'Helloop'" $prompt
-# performTest "echo \\'Hello\"o\"p\\'" "'Helloop'" $prompt
-# performTest "echo \"Hello\"o\"p\"hole\" Wo\"r\"ld\"" "Helloophole World" $prompt
-# performTest "echo \"Hello'o'p'hole' Wo'r'ld\"" "Hello'o'p'hole' Wo'r'ld" $prompt
-# performTest "echo \\\"Hello\"o\"p\"hole\" Wo\"r\"ld\\\"" "\"Helloophole World\"" $prompt
-# performTest "echo \\\"Hello'o'p'hole' Wo'r'ld\\\"" "\"Helloophole World\"" $prompt
-# performTest "echo \"Hello\\\"o\\\"p\\\"hole\\\" Wo\"r\"ld\"" "Hello\"o\"p\"hole\" World" $prompt
-# performTest "echo \\\"Hello\\\"o\\\"p\\\"hole\\\" Wo\"r\"ld\\\"" "\"Hello\"o\"p\"hole\" World\"" $prompt
-# performTest "echo 'Hell'o'p'hole' Wo'r'ld'" "Hellophole World" $prompt
-# performTest "echo 'Hell\"o\"p\"hole\" Wo\"r\"ld'" "Hell\"o\"p\"hole\" Wo\"r\"ld" $prompt
-# performTest "echo \\'Hello'o'p'hole' Wo'r'ld\\'" "'Helloophole World'" $prompt
-# performTest "echo \\'Hello\"o\"p\"hole\" Wo\"r\"ld\\'" "'Helloophole World'" $prompt
-# # * Check if string not closed works correctly
-# performTest "echo \"Hello" "sane: string not closed" $prompt
+performTest\
+    "echo Wo'r'ld"\
+    "World"\
+    $prompt\
+    "Test that the ' character is ignored in an argument."
+performTest\
+    "echo Wo\"r\"ld"\
+    "World"\
+    $prompt\
+    "Test that the \" character is ignored in an argument."
+performTest\
+    "echo \\\"Hello"\
+    "\"Hello"\
+    $prompt\
+    "Test that the \" character is not ignored if escaped."
+performTest\
+    "echo \"Hell'o\""\
+    "Hell'o"\
+    $prompt\
+    "Test that using a single ' character within a string doesn't cause an error."
+performTest\
+    "echo \\\"Hell\"o\\\""\
+    "sane: string not closed"\
+    $prompt\
+    "Test that the shell complains if all opened strings are not closed."
+performTest\
+    "echo Hell'o"\
+    "sane: string not closed"\
+    $prompt\
+    "Test that the shell complains if all opened strings are not closed."
+performTest\
+    "echo \\\"Hell'o\\\""\
+    "sane: string not closed"\
+    $prompt\
+    "Test that the shell complains if all opened strings are not closed."
+performTest\
+    "echo \"Hell\"o\""\
+    "sane: string not closed"\
+    $prompt\
+    "Test that the shell complains if all opened strings are not closed."
+performTest\
+    "echo \"Hello"\
+    "sane: string not closed"\
+    $prompt\
+    "Test that the shell complains if all opened strings are not closed."
+# performTest\
+#     "echo Hello\\ World"\
+#     "Hello World"\
+#     $prompt\
+#     "Test that spaces can be used if escaped."
+performTest\
+    "echo Hello\\"\
+    "Hello"\
+    $prompt\
+    "Test that a trailing \\ character does not cause an error."
+performTest\
+    "echo Hello\\ World\\"\
+    "Hello World"\
+    $prompt\
+    "Test that a trailing \\ character does not cause an error."
+performTest\
+    "echo \"Hello\"o\"p\""\
+    "Helloop"\
+    $prompt\
+    "Test that the \" character is ignored if inside a set of \" characters."
+performTest\
+    "echo \"Hello'o'p\""\
+    "Hello'o'p"\
+    $prompt\
+    "Test that the ' character is not ignored if inside a set of \" characters."
+performTest\
+    "echo \\\"Hello\"o\"p\\\""\
+    "\"Helloop\""\
+    $prompt\
+    "Test that the \" character is ignored if inside a set of \\\" characters."
+performTest\
+    "echo \\\"Hello'o'p\\\""\
+    "\"Helloop\""\
+    $prompt\
+    "Test that the ' character is not ignored if inside a set of \\\" characters."
+performTest\
+    "echo \"Hello\\\"o\\\"p\""\
+    "Hello\"o\"p"\
+    $prompt\
+    "Test that the \" character is not ignored if escaped and inside a set of \" characters."
+performTest\
+    "echo \\\"Hello\\\"o\\\"p\\\""\
+    "\"Hello\"o\"p\""\
+    $prompt\
+    "Test that escaped strings work when placed within other escaped strings."
+performTest\
+    "echo 'Hell'o'p'"\
+    "Hellop"\
+    $prompt\
+    "Test that a ' string is ignored when placed inside another ' string."
+performTest\
+    "echo 'Hell\"o\"p'"\
+    "Hell\"o\"p"\
+    $prompt\
+    "Test that \" string is not ignored when placed inside a ' string."
+performTest\
+    "echo \\'Hello'o'p\\'"\
+    "'Helloop'"\
+    $prompt\
+    "Test escaping of \' string."
+performTest\
+    "echo \\'Hello\"o\"p\\'"\
+    "'Helloop'"\
+    $prompt\
+    "Test ignoring of \" string."
+performTest\
+    "echo \"Hello\"o\"p\"hole\" Wo\"r\"ld\""\
+    "Helloophole World"\
+    $prompt\
+    "Test a more complex example of ignoring \" character."
+performTest\
+    "echo \"Hello'o'p'hole' Wo'r'ld\""\
+    "Hello'o'p'hole' Wo'r'ld"\
+    $prompt\
+    "Test a more complex example of ' string within \" string."
+performTest\
+    "echo \\\"Hello\"o\"p\"hole\" Wo\"r\"ld\\\""\
+    "\"Helloophole World\""\
+    $prompt\
+    "Test a more complex example of ignoring \" character inside \\\" string."
+performTest\
+    "echo \\\"Hello'o'p'hole' Wo'r'ld\\\""\
+    "\"Helloophole World\""\
+    $prompt\
+    "Test a more complex example of ignoring \" character inside ' string."
+performTest\
+    "echo \"Hello\\\"o\\\"p\\\"hole\\\" Wo\"r\"ld\""\
+    "Hello\"o\"p\"hole\" World"\
+    $prompt\
+    "Test more complex example of escaping string characters."
+performTest\
+    "echo \\\"Hello\\\"o\\\"p\\\"hole\\\" Wo\"r\"ld\\\""\
+    "\"Hello\"o\"p\"hole\" World\""\
+    $prompt\
+    "Test more complex example of escaping string characters."
+performTest\
+    "echo 'Hell'o'p'hole' Wo'r'ld'"\
+    "Hellophole World"\
+    $prompt\
+    "Test a more complex example of ignoring the ' character inside a ' string."
+performTest\
+    "echo 'Hell\"o\"p\"hole\" Wo\"r\"ld'"\
+    "Hell\"o\"p\"hole\" Wo\"r\"ld"\
+    $prompt\
+    "Test a more complex example of not ignoring the \" character inside a ' string."
+performTest\
+    "echo \\'Hello'o'p'hole' Wo'r'ld\\'"\
+    "'Helloophole World'"\
+    $prompt\
+    "Test a more complex example of ignoring the ' character inside an escaped \' string."
+performTest\
+    "echo \\'Hello\"o\"p\"hole\" Wo\"r\"ld\\'"\
+    "'Helloophole World'"\
+    $prompt\
+    "Test a more complex example of ignoring the \" character inside an escaped \' string."
 
 endTestSuite
 
 ### Prompt ###
 startTestSuite "Prompt"
 
-# performTest "prompt >" "sane: syntax error, expected path after token '>'" $prompt  
-# performTest "prompt \">\"" "" "> "
-# performTest "prompt \\>" "" "> "
-# performTest "prompt \"orchid $\"" "" "orchid $ "
-# performTest "prompt myshell" "" "myshell" 
-# performTest "prompt %" "" "% "
+performTest\
+    "prompt >"\
+    "sane: syntax error, expected path after token '>'"\
+    $prompt\
+    "Test that a single '>' is interpreted as a redirection operator and hence throws error."
+performTest\
+    "prompt \">\""\
+    ""\
+    "> "\
+    "Test that placing the '>' character in \" quotes allows a '>' prompt to be created."
+performTest\
+    "prompt '>'"\
+    ""\
+    "> "\
+    "Test that placing the '>' character in ' quotes allows a '>' prompt to be created."
+performTest\
+    "prompt \\>"\
+    "" "> "\
+    "Test that escaping the '>' character allows a '>' prompt to be created."
+performTest\
+    "prompt \"orchid $\""\
+    ""\
+    "orchid $ "\
+    "Test a multiple argument prompt."
+performTest\
+    "prompt %"\
+    ""\
+    "% "\
+    "Restore prompt."
 
 endTestSuite
-
-### Pipes ###
-
-startTestSuite "Pipes"
-endTestSuite
-
-### Redirection ###
 
 ### Builtins
-startTestSuite "Builtins"
+# startTestSuite "Builtins"
 
 # performTest "pwd" "*/test" $prompt
 # performTest "pwd | cat | grep \"test\"" "*/test" $prompt
@@ -189,10 +332,10 @@ startTestSuite "Builtins"
 # performTest "cd test folderThatDoesNotExist1 folderThatDoesNotExist2 ; pwd" "*/test" $prompt
 # # performTest "cd ; pwd" "$env(HOME)" $prompt
 
-endTestSuite
+# endTestSuite
 
 ### Wildcards ###
-startTestSuite "Wildcards"
+# startTestSuite "Wildcards"
 
 # performTest "ls folder2/foo?.c" "folder2/foo1.c\tfolder2/foo2.c" $prompt
 # performTest "ls folder2/foo*.c" "folder2/foo1.c\tfolder2/foo2.c\tfolder2/foo33.c" $prompt
@@ -205,7 +348,7 @@ startTestSuite "Wildcards"
 # performTest "cat folder3/names.txt | grep \"Hello\"" "Hello World" $prompt 
 # performTest "cat folder3/names.txt | grep 'Hello'" "Hello World" $prompt 
 
-endTestSuite
+# endTestSuite
 
 ### Marking Guide ###
 # startTestSuite "Marking Guide"
@@ -216,50 +359,128 @@ endTestSuite
 
 # endTestSuite
 
-# performTest "" "" $prompt
-# performTest "" "" $prompt
-# performTest "" "" $prompt
-# performTest "" "" $prompt
-# performTest "" "" $prompt
-# performTest "" "" $prompt
-
 ### Miscellaneous ###
-startTestSuite "Misc"
+# startTestSuite "Misc"
 
-performTest\
-    "|"\
-    "sane: first token is command separator"\
-    $prompt\
-    "Check that shell throws an error if first token is a '|' command separator"
-performTest\
-    "&"\
-    "sane: first token is command separator"\
-    $prompt\
-    "Check that shell throws an error if first token is a '&' command separator"
-performTest\
-    ";"\
-    "sane: first token is command separator"\
-    $prompt\
-    "Check that shell throws an error if first token is a ';' command separator"
-performTest\
-    "echo Hello |"\
-    "sane: last command followed by command separator '|'"\
-    $prompt\
-    "Check that an error is thrown if user tries to pipe last command."
-performTest\
-    "echo Hello | | cat"\
-    "sane: at least two successive commands are separated by more than one command separator"\
-    $prompt\
-    "Check that the two successive command error works as expected for the '|' separator."
-performTest\
-    "echo Hello & & cat"\
-    "sane: at least two successive commands are separated by more than one command separator"\
-    $prompt\
-    "Check that the two successive command error works as expected for the '&' separator."
-performTest\
-    "echo Hello ; ; cat"\
-    "sane: at least two successive commands are separated by more than one command separator"\
-    $prompt\
-    "Check that the two successive command error works as expected for the ';' separator."
+# performTest\
+#     "|"\
+#     "sane: first token is command separator"\
+#     $prompt\
+#     "Check that shell throws an error if first token is a '|' command separator"
+# performTest\
+#     "&"\
+#     "sane: first token is command separator"\
+#     $prompt\
+#     "Check that shell throws an error if first token is a '&' command separator"
+# performTest\
+#     ";"\
+#     "sane: first token is command separator"\
+#     $prompt\
+#     "Check that shell throws an error if first token is a ';' command separator"
+# performTest\
+#     "echo Hello |"\
+#     "sane: last command followed by command separator '|'"\
+#     $prompt\
+#     "Check that an error is thrown if user tries to pipe last command."
+# performTest\
+#     "echo Hello | | cat"\
+#     "sane: at least two successive commands are separated by more than one command separator"\
+#     $prompt\
+#     "Check that the two successive command error works as expected for the '|' separator."
+# performTest\
+#     "echo Hello & & cat"\
+#     "sane: at least two successive commands are separated by more than one command separator"\
+#     $prompt\
+#     "Check that the two successive command error works as expected for the '&' separator."
+# performTest\
+#     "echo Hello ; ; cat"\
+#     "sane: at least two successive commands are separated by more than one command separator"\
+#     $prompt\
+#     "Check that the two successive command error works as expected for the ';' separator."
+# set timeout 5
+# performTest\
+#     "sleep 1 ; echo hello"\
+#     "hello"\
+#     $prompt\
+#     "Ensure that sequential execution works as expected."
+# performTest\
+#     "sleep 1 ; ls -l folder1"\
+#     "[ ]*foo1\r\n[ ]*foo2\r\n[ ]*foo3"\
+#     $prompt\
+#     "Ensure that sequential execution works as expected."
+# performTest\
+#     "sleep 1 ; echo hello1 ; sleep 1 ; echo hello2"\
+#     "hello1\r\nhello2"\
+#     $prompt\
+#     "Ensure that sequential execution works as expected with multiple sleeps."
+# set timeout 2 
+# performTest\
+#     "sleep 10 & echo hello"\
+#     "hello"\
+#     $prompt\
+#     "Test that background execution works (shell shouldn't wait for sleep to execute before executing the echo command)"
+# performTest\
+#     "ls folder2/abc.c folder2/abc.x folder2/abc33.c folder2/abc33.cc"\
+#     "folder2/abc.c[ ]*folder2/abc.x[ ]*folder2/abc33.c[ ]*folder2/abc33.cc"\
+#     $prompt\
+#     "Test a command with a large number of parameters"
 
-endTestSuite
+# endTestSuite
+
+### Redirection ###
+# startTestSuite "Redirection"
+
+# performTest\
+#     "cat < folder3/names.txt"\
+#     "Betty\r\nAardvark\r\nHello World"\
+#     $prompt\
+#     "Test that standard input redirection works."
+# performTest\
+#     "grep Betty < folder3/names.txt"\
+#     "Betty"\
+#     $prompt\
+#     "Test that standard input redirection works."
+# performTest\
+#     "cat < folder3/names.txt > folder4/names.txt ; cat < folder4/names.txt"\
+#     "Betty\r\nAardvark\r\nHello World"\
+#     $prompt\
+#     "Test that standard output redirection works."
+# performTest\
+#     "grep Betty < folder3/names.txt > folder4/betty.txt ; cat < folder4/betty.txt"\
+#     "Betty"\
+#     $prompt\
+#     "Test that standard input redirection works."
+
+# endTestSuite
+
+### Pipes ###
+
+# startTestSuite "Pipes"
+
+# performTest\
+#     "cat folder3/names.txt | cat"\
+#     "Betty\r\nAardvark\r\nHello World"\
+#     $prompt\
+#     "Test that a simple shell pipeline works."
+# performTest\
+#     "cat folder3/names.txt | grep Aardvark"\
+#     "Aardvark"\
+#     $prompt\
+#     "Test that a simple shell pipeline works."
+# performTest\
+#     "cat folder3/names.txt | sort"\
+#     "Aardvark\r\nBetty\r\nHello World"\
+#     $prompt\
+#     "Test that a simple shell pipeline works."
+# performTest\
+#     "cat folder3/names.txt | sort -r"\
+#     "Hello World\r\nBetty\r\nAardvark"\
+#     $prompt\
+#     "Test that a simple shell pipeline works."
+# performTest\
+#     "cat folder3/names.txt | sort | sort -r | grep Hello"\
+#     "Hello World"\
+#     $prompt\
+#     "Test that a longer shell pipeline works."
+
+# endTestSuite
