@@ -353,6 +353,11 @@ performTest\
     "*/test"\
     $prompt\
     "Test that cd ignores multiple arguments other than first."
+performTest\
+    "cd ./folder1 ; cd .. ; pwd"\
+    "*/test"\
+    $prompt\
+    "Test that relative directories work."
 # performTest "cd ; pwd" "$env(HOME)" $prompt "Test that cd with no arguments work."
 
 endTestSuite
