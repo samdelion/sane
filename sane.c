@@ -383,10 +383,9 @@ void sane_execute(int numCommands, command_t *commands)
 
             ++i;
         } else if (strcmp(commands[i].sep, SEP_CON) == 0) {
-            pid_t pid = sane_launch(&commands[i], STDIN_FILENO, STDOUT_FILENO);
+            sane_launch(&commands[i], STDIN_FILENO, STDOUT_FILENO);
 
             // Don't wait for child process to finish
-
             ++i;
         }
         // Piped command
