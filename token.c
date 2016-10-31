@@ -47,7 +47,7 @@ int tokenise(char *inputLine, char *token[])
         }
 
         if (*it) {
-            if (*it == '"' | *it == '\'') {
+            if ((*it == '"') | (*it == '\'')) {
                 // Quote type is either " or '
                 char quoteType = (*it == '"') ? '"' : '\'';
 
@@ -107,7 +107,7 @@ int tokenise(char *inputLine, char *token[])
                     // Skip escaped characters
                     if (*it == '\\') {
                         ++it;
-                    } else if (*it == '"' | *it == '\'') {
+                    } else if ((*it == '"') | (*it == '\'')) {
                         // Ensure that string is closed
                         char quoteType = *it;
                         char *itStr = ++it;
