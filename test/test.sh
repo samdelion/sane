@@ -321,34 +321,84 @@ performTest\
 endTestSuite
 
 ### Builtins
-# startTestSuite "Builtins"
+startTestSuite "Builtins"
 
-# performTest "pwd" "*/test" $prompt
-# performTest "pwd | cat | grep \"test\"" "*/test" $prompt
-# performTest "pwd | grep \"test\"" "*/test" $prompt
-# performTest "cd test ; pwd" "cd: No such file or directory" $prompt
+performTest\
+    "pwd"\
+    "*/test"\
+    $prompt\
+    "Test that pwd works."
+performTest\
+    "pwd | cat | grep \"test\""\
+    "*/test"\
+    $prompt\
+    "Test that builtins work in a pipeline."
+performTest\
+    "pwd | grep \"test\""\
+    "*/test"\
+    $prompt\
+    "Test that builtins work in a pipeline"
+performTest\
+    "cd testFolderThatDoesntExist ; pwd"\
+    "cd: No such file or directory"\
+    $prompt\
+    "Test that cd complains if no directory to cd to."
 # # * Bash ignores other arguments to cd - expect no error
-# performTest "cd test folderThatDoesNotExist ; pwd" "*/test" $prompt
-# performTest "cd test folderThatDoesNotExist1 folderThatDoesNotExist2 ; pwd" "*/test" $prompt
-# # performTest "cd ; pwd" "$env(HOME)" $prompt
+performTest\
+    "cd test folderThatDoesNotExist ; pwd"\
+    "*/test"\
+    $prompt\
+    "Test that cd ignores arguments other than first."
+performTest\
+    "cd test folderThatDoesNotExist1 folderThatDoesNotExist2 ; pwd"\
+    "*/test"\
+    $prompt\
+    "Test that cd ignores multiple arguments other than first."
+# performTest "cd ; pwd" "$env(HOME)" $prompt "Test that cd with no arguments work."
 
-# endTestSuite
+endTestSuite
 
 ### Wildcards ###
-# startTestSuite "Wildcards"
+startTestSuite "Wildcards"
 
-# performTest "ls folder2/foo?.c" "folder2/foo1.c\tfolder2/foo2.c" $prompt
-# performTest "ls folder2/foo*.c" "folder2/foo1.c\tfolder2/foo2.c\tfolder2/foo33.c" $prompt
-# performTest "ls folder2/foo*" "folder2/foo1.c\tfolder2/foo2.c\tfolder2/foo33.c\tfolder2/foo4" $prompt
-# performTest "ls folder2/abc.?" "folder2/abc.c\tfolder2/abc.x" $prompt
-# performTest "ls folder2/abc*.?" "folder2/abc.c\tfolder2/abc.x\tfolder2/abc33.c" $prompt
-# performTest "ls folder2/*" "folder2/abc.c[ ]*folder2/abc33.c[ ]*folder2/afoo[ ]*folder2/foo2.c[ ]*folder2/foo4[ ]*folder2/abc.x[ ]*folder2/abc33.cc[ ]*folder2/foo1.c[ ]*folder2/foo33.c[ ]*folder2/hfoo" $prompt
+performTest\
+    "ls folder2/foo?.c"\
+    "folder2/foo1.c\tfolder2/foo2.c"\
+    $prompt\
+    "Test that '?' wildcard character works."
+performTest\
+    "ls folder2/foo*.c"\
+    "folder2/foo1.c\tfolder2/foo2.c\tfolder2/foo33.c"\
+    $prompt\
+    "Test that '*' wildcard character works."
+performTest\
+    "ls folder2/foo*"\
+    "folder2/foo1.c\tfolder2/foo2.c\tfolder2/foo33.c\tfolder2/foo4"\
+    $prompt\
+    "Test that '*' wildcard character works."
+performTest\
+    "ls folder2/abc.?"\
+    "folder2/abc.c\tfolder2/abc.x"\
+    $prompt\
+    "Test that '?' wildcard character works."
+performTest\
+    "ls folder2/abc*.?"\
+    "folder2/abc.c\tfolder2/abc.x\tfolder2/abc33.c"\
+    $prompt\
+    "Test that the '?' and '*' wildcard characters work in combination."
+# performTest\
+#     "ls folder2/*"\
+#     # "folder2/abc.c[ ]*folder2/abc33.c[ ]*folder2/afoo[ ]*folder2/foo2.c[ ]*folder2/foo4[ ]*folder2/abc.x[ ]*folder2/abc33.cc[ ]*folder2/foo1.c[ ]*folder2/foo33.c[ ]*folder2/hfoo"\
+#     $prompt\
+#     "Test that '*' wildcard character works with large number of files."
 # # * Make sure wildcard doesn't expand when inside string
-# performTest "ls \"folder2/*\"" "ls: folder2/*: No such file or directory" $prompt
-# performTest "cat folder3/names.txt | grep \"Hello\"" "Hello World" $prompt 
-# performTest "cat folder3/names.txt | grep 'Hello'" "Hello World" $prompt 
+performTest\
+    "ls \"folder2/*\""\
+    "ls: folder2/*: No such file or directory"\
+    $prompt\
+    "Make sure wildcard doesn't expand when inside string"
 
-# endTestSuite
+endTestSuite
 
 ### Marking Guide ###
 # startTestSuite "Marking Guide"
