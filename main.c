@@ -143,30 +143,30 @@ int main(int argc, char **argv)
                                     "MAX_NUM_TOKENS\n");
                 } else if (numTokens == -2) {
                     fprintf(stderr, "sane: string not closed\n");
-                }
+                } else {
+                    command_t command[MAX_NUM_COMMANDS];
+                    // Reset command array
+                    memset(command, 0, MAX_NUM_COMMANDS * sizeof(command_t));
+                    int numCommands = separateCommands(token, numTokens, command);
+                    if (numCommands == -1) {
+                        fprintf(stderr, "sane: command array is too small for "
+                                        "all commands\n");
+                    } else if (numCommands == -2) {
+                        fprintf(stderr, "sane: at least two successive "
+                                        "commands are separated by more than "
+                                        "one command separator\n");
+                    } else if (numCommands == -3) {
+                        fprintf(stderr, "sane: first token is command separator\n");
+                    } else if (numCommands == -4) {
+                        fprintf(stderr, "sane: last command followed by "
+                                        "command separator '|'\n");
+                    }
 
-                command_t command[MAX_NUM_COMMANDS];
-                // Reset command array
-                memset(command, 0, MAX_NUM_COMMANDS * sizeof(command_t));
-                int numCommands = separateCommands(token, numTokens, command);
-                if (numCommands == -1) {
-                    fprintf(stderr, "sane: command array is too small for "
-                                    "all commands\n");
-                } else if (numCommands == -2) {
-                    fprintf(stderr, "sane: at least two successive "
-                                    "commands are separated by more than "
-                                    "one command separator\n");
-                } else if (numCommands == -3) {
-                    fprintf(stderr, "sane: first token is command separator\n");
-                } else if (numCommands == -4) {
-                    fprintf(stderr, "sane: last command followed by "
-                                    "command separator '|'\n");
-                }
-
-                if (numCommands > 0) {
-                    sane_execute(numCommands, command);
-
-                    freeCommands(command, numCommands);
+                    if (numCommands > 0) {
+                        sane_execute(numCommands, command);
+                    
+                        freeCommands(command, numCommands);
+                    }
                 }
             } else {
                 // Quit on Ctrl-D
