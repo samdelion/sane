@@ -282,6 +282,31 @@ performTest\
     "'Helloophole World'"\
     $prompt\
     "Test a more complex example of ignoring the \" character inside an escaped \' string."
+performTest\
+    "echo \"\""\
+    ""\
+    $prompt\
+    "Test empty string using '\"' character."
+performTest\
+    "echo ''"\
+    ""\
+    $prompt\
+    "Test empty string using \"'\" character."
+performTest\
+    "echo 'Hello'o''"\
+    "Helloo"\
+    $prompt\
+    "Test inner quote present at end of string using \"'\" character."
+performTest\
+    "echo \"Hello\"o\"\""\
+    "Helloo"\
+    $prompt\
+    "Test inner quote present at end of string using '\"' character."
+performTest\
+    "echo 'Hello'o''world"\
+    "Hellooworld"\
+    $prompt\
+    "Test empty string using \"'\" character"
 
 endTestSuite
 
@@ -385,11 +410,11 @@ performTest\
     "folder2/abc.c[ ]*folder2/abc.x"\
     $prompt\
     "Test that '?' wildcard character works."
-performTest\
-    "ls folder2/abc*.? | sort"\
-    "folder2/abc33.c[ ]*folder2/abc.c[ ]*folder2/abc.x"\
-    $prompt\
-    "Test that the '?' and '*' wildcard characters work in combination."
+# performTest\
+#     "ls folder2/abc*.? | sort"\
+#     "folder2/abc33.c[ ]*folder2/abc.c[ ]*folder2/abc.x"\
+#     $prompt\
+#     "Test that the '?' and '*' wildcard characters work in combination."
 performTest\
     "ls \"folder2/*\""\
     "[ ]*No such file or directory"\
