@@ -46,11 +46,12 @@ static int findOpenStrings(const char *inputLine, int *openStringPosition)
                 // Advance into string
                 ++it;
             
-                // if we don't find a close, return 1
+                // Attempt to find a close to the string
                 while (*it != quoteType) {
                     // Ignore escape characters
                     if (*it == '\\') {
                         ++it;
+                    // If we don't find a close, return 1
                     } else if (*it == '\0') {
                         return 1;
                     }
@@ -172,124 +173,3 @@ int tokenise(char *inputLine, char *token[])
     // Else return number of tokens
     return numTokens;
 }
-
-/*
-int tokenise(char *inputLine, char *token[])
-{
-    int numTokens = 0;
-
-    char *it = inputLine;
-    while (*it && numTokens < MAX_NUM_TOKENS) {
-        // Skip characters we aren't interested in such as space, tab, newline
-        while (*it && ((*it <= 32) || (*it > 126))) {
-            ++it;
-        }
-
-        if (*it) {
-            if ((*it == '"') | (*it == '\'')) {
-                // Quote type is either " or '
-                char quoteType = (*it == '"') ? '"' : '\'';
-
-                // Assign start address of string (including quote) to array
-                token[numTokens] = it++;
-                ++numTokens;
-
-                // Don't stop consuming characters until we find end of input or
-                // end of string
-                while (*it) {
-                    // If escape character, skip over next character (ignore it)
-                    if (*it == '\\') {
-                        ++it;
-                    } else if (*it == '"' || *it == quoteType) {
-                        // We've found another quote, now this could be the end of our currently open string or the beginning of another one inside our current string (note that single character inner quotes are ignored).
-                        // i.e. echo "Hell"o"o" -> Helloo
-                        //      echo 'Hell'o'o' -> Helloo
-                        //      echo "Hell'oo"  -> Helloo
-                        char innerQuoteType = *it;
-                        char *itStr = ++it;
-                        int isStringClosed = 0;
-
-                        while (*itStr) {
-                            // Skip over escaped characters
-                            if (*itStr == '\\') {
-                                ++itStr;
-                            } else if (*itStr == innerQuoteType) {
-                                isStringClosed = 1;
-                                break;
-                            }
-                            ++itStr;
-                        }
-
-                        if (!isStringClosed) { // This is the end of our string
-                            --it; // Go back one so rest of fn sees we reached end of our string
-                            break;
-                        } else {
-                            it = itStr;
-                        }
-                    }
-                    ++it;
-                }
-
-                // If we reached end of input before string was closed, return
-                // error
-                if (!(*it)) {
-                    return -2;
-                }
-
-                ++it;
-            } else {
-                // Assign start address of token to array
-                token[numTokens] = it;
-                ++numTokens;
-
-                // Skip characters we are interested in ('a', 'b', '!', etc.)
-                // (not including space, tab, newline etc.)
-                while (*it && ((*it > 32) && (*it <= 126))) {
-                    // Skip escaped characters
-                    if (*it == '\\') {
-                        ++it;
-                    } else if ((*it == '"') | (*it == '\'')) {
-                        // Ensure that string is closed
-                        char quoteType = *it;
-                        char *itStr = ++it;
-                        int stringClosed = 0;
-                        while (*itStr) {
-                            // Skip over escaped characters
-                            if (*itStr == '\\') {
-                                ++itStr;
-                            } else if (*itStr == quoteType) {
-                                stringClosed = 1;
-                                break;
-                            }
-                            ++itStr;
-                        }
-
-                        // Return error if string not closed
-                        if (!stringClosed) {
-                            return -2;
-                        } else {
-                            it = itStr;
-                        }
-                    }
-                    ++it;
-                }
-            }
-
-            // Put null-terminator at end of token
-            if (*it) {
-                *it = '\0';
-                // Advance iterator one character
-                ++it;
-            }
-        }
-
-        // If we've reached maximum number of tokens and still have more input
-        // to tokenise, return error
-        if (numTokens == MAX_NUM_TOKENS && *it) {
-            return -1;
-        }
-    }
-
-    return numTokens;
-}
-*/
