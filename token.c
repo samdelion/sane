@@ -32,25 +32,33 @@ static int findOpenStrings(const char *inputLine, int *openStringPosition)
 {
     const char *it = inputLine;
     while (*it) {
-        // A string has been opened
-        if (isQuoteCharacter(*it)) {
-            char quoteType = *it;
-            if (openStringPosition != NULL) {
-                *openStringPosition = (int)labs(it - inputLine); // position relative to begining of inputLine
-            }
-            
-            // Advance into string
+        // Ignore escape characters
+        if (*it == '\\') {
             ++it;
-            
-            // if we don't find a close, return 1
-            while (*it != quoteType) {
-                if (*it == '\0') {
-                    return 1;
+        } else {
+            // A string has been opened
+            if (isQuoteCharacter(*it)) {
+                char quoteType = *it;
+                if (openStringPosition != NULL) {
+                    *openStringPosition = (int)labs(it - inputLine); // position relative to begining of inputLine
                 }
-                
+            
+                // Advance into string
                 ++it;
+            
+                // if we don't find a close, return 1
+                while (*it != quoteType) {
+                    // Ignore escape characters
+                    if (*it == '\\') {
+                        ++it;
+                    } else if (*it == '\0') {
+                        return 1;
+                    }
+                
+                    ++it;
+                }
+                // If we do find a close, continue analyzing input
             }
-            // If we do find a close, continue analyzing input
         }
         ++it;
     }
@@ -103,49 +111,55 @@ int tokenise(char *inputLine, char *token[])
     
     // Loop thru input
     while (*it && numTokens < MAX_NUM_TOKENS) {
-        // If is quote character
-        if (isQuoteCharacter(*it)) {
-            if (isInString == 0) {
-                // If we are not already inside a string, open a new one
-                currentQuoteType = *it;
-                isInString = 1;
-            } else if (*it == currentQuoteType) {
-                // Edge case: if previous character was a quote (i.e. we have an empty string)
-                // we need to strip the empty string from the input line
-                if (*(it - 1) == currentQuoteType) {
-                    char *tmpIt = (it - 1); // pointer to opening of empty string
-                    // 'it' currently points to the end of the empty string, so it + i is anything after the empty string.
-                    // Shift all characters after the empty string in the input line back two characters
-                    // to effectively erase the empty string.
-                    for (int i = 1; *(it + i) != '\0'; ++i) {
-                        *tmpIt = *(it + i);
-                        ++tmpIt;
-                    }
-                    // Make sure to set the null-terminator
-                    *tmpIt = '\0';
-                }
-                
-                // If we are already inside a string and this quote matches
-                // the current quote type, this is the end of the string
-                isInString = 0;
-                currentQuoteType = '\0';
-            }
-        }
-        
-        // If is whitespace not inside a string
-        if (isWhitespaceCharacter(*it) && !isInString) {
-            // insert '\0' into input line
-            *it = '\0';
+        // If escape character, skip over it and next character
+        if (*it == '\\') {
             ++it;
-            // advance to next readable character
-            it = skipWhitespace(it);
-            
-            // Start new token
-            token[numTokens] = it;
-            ++numTokens;
-        // Else keep looping thru input
+            ++it;
         } else {
-            ++it;
+            // If is quote character
+            if (isQuoteCharacter(*it)) {
+                if (isInString == 0) {
+                    // If we are not already inside a string, open a new one
+                    currentQuoteType = *it;
+                    isInString = 1;
+                } else if (*it == currentQuoteType) {
+                    // Edge case: if previous character was a quote (i.e. we have an empty string)
+                    // we need to strip the empty string from the input line
+                    if (*(it - 1) == currentQuoteType) {
+                        char *tmpIt = (it - 1); // pointer to opening of empty string
+                        // 'it' currently points to the end of the empty string, so it + i is anything after the empty string.
+                        // Shift all characters after the empty string in the input line back two characters
+                        // to effectively erase the empty string.
+                        for (int i = 1; *(it + i) != '\0'; ++i) {
+                            *tmpIt = *(it + i);
+                            ++tmpIt;
+                        }
+                        // Make sure to set the null-terminator
+                        *tmpIt = '\0';
+                    }
+                
+                    // If we are already inside a string and this quote matches
+                    // the current quote type, this is the end of the string
+                    isInString = 0;
+                    currentQuoteType = '\0';
+                }
+            }
+        
+            // If is whitespace not inside a string
+            if (isWhitespaceCharacter(*it) && !isInString) {
+                // insert '\0' into input line
+                *it = '\0';
+                ++it;
+                // advance to next readable character
+                it = skipWhitespace(it);
+            
+                // Start new token
+                token[numTokens] = it;
+                ++numTokens;
+            // Else keep looping thru input
+            } else {
+                ++it;
+            }
         }
     }
     
