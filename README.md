@@ -1,6 +1,6 @@
 # sane
 
-![sane_black](https://dl.dropboxusercontent.com/u/38237647/Screen%20Shot%202016-10-03%20at%2010.16.42%20AM.png)
+![sane_black](https://www.dropbox.com/s/zqvccdjgq22xhm7/Screen%20Shot%202016-10-15%20at%204.28.27%20pm.png?dl=0)
 
 The **S**amuel Evans-Powell and Nathan G**ane** shell.
 
