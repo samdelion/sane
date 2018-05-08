@@ -1,6 +1,6 @@
 # sane
 
-![sane_black](http://sevanspowell.net/img/sane.png)
+![sane_black](http://sevanspowell.blog/img/sane.png)
 
 The **S**amuel Evans-Powell and Nathan G**ane** shell.
 
